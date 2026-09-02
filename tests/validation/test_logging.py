@@ -108,7 +108,7 @@ def test_request_id_propagated(app_client: TestClient) -> None:
 
     # Act
     response = app_client.get(
-        "/api/v1/health",
+        "/api/v1/health/ready",
         headers={"X-Request-ID": request_id},
     )
 
@@ -123,7 +123,7 @@ def test_request_id_propagated(app_client: TestClient) -> None:
     ]
     assert matches, "request_id should appear in audit log entries for the request"
     details = matches[-1]["details"]
-    assert details["path"] == "/api/v1/health"
+    assert details["path"] == "/api/v1/health/ready"
     assert details["method"] == "GET"
 
 

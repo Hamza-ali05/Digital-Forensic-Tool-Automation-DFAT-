@@ -225,7 +225,7 @@ async def main() -> int:
     admin = USERS[0]
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
-            health = await client.get(f"{API_BASE}/health")
+            health = await client.get(f"{API_BASE}/health/ready")
             health.raise_for_status()
         except Exception as exc:  # noqa: BLE001
             _print(

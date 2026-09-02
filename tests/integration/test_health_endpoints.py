@@ -5,19 +5,10 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 
-def test_health_returns_200(app_client: TestClient) -> None:
-    """Basic health check requires no authentication."""
-    # Arrange / Act
+def test_health_liveness_removed(app_client: TestClient) -> None:
+    """Basic /health liveness endpoint is not exposed."""
     response = app_client.get("/api/v1/health")
-
-    # Assert
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "healthy"
-    assert "version" in body
-    assert "system_readiness" in body
-    assert "degraded_services" in body
-    assert "available_capabilities" in body
+    assert response.status_code == 404
 
 
 def test_ready_checks_database(app_client: TestClient) -> None:

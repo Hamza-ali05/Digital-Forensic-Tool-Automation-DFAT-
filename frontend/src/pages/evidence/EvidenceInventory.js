@@ -7,16 +7,19 @@ import {
   Col,
   Container,
   Form,
-  OverlayTrigger,
+  Pagination,
   Row,
-  Tooltip,
+  Spinner,
 } from "@themesberg/react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheckCircle,
+  faClock,
   faCopy,
   faDatabase,
   faEye,
+  faFileAlt,
+  faFolderOpen,
   faHdd,
   faMemory,
   faPlus,
@@ -32,10 +35,11 @@ import {
 import { Doughnut } from "react-chartjs-2";
 
 import PageHeader from "components/common/PageHeader";
-import DataTable from "components/common/DataTable";
 import SearchInput from "components/common/SearchInput";
 import StatusBadge from "components/common/StatusBadge";
 import ApiErrorDisplay from "components/common/ApiErrorDisplay";
+import EmptyState from "components/common/EmptyState";
+import SkeletonLoader from "components/common/SkeletonLoader";
 import StatCard from "components/forensic/StatCard";
 import {
   EVIDENCE_STATUS,
@@ -55,10 +59,17 @@ import usePagination from "hooks/usePagination";
 import usePermission from "hooks/usePermission";
 import useNotification from "hooks/useNotification";
 import evidenceService from "services/evidence.service";
-import casesService from "services/cases.service";
+import {
+  fetchCasesCached,
+  fetchEvidenceInventoryCached,
+  fetchEvidenceStatisticsCached,
+  normaliseCasesList,
+} from "services/referenceData";
 import { Routes } from "routes";
 
 ChartJS.register(ArcElement, Legend, ChartTooltip);
+
+const PAGE_SIZE = 6;
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -93,7 +104,7 @@ function HashCell({ hash }) {
   if (!hash) return "—";
   return (
     <span className="d-inline-flex align-items-center">
-      <code className="small me-1">{formatHash(hash, 12)}</code>
+      <code className="small me-1 text-break">{formatHash(hash, 12)}</code>
       <CopyToClipboard
         text={hash}
         onCopy={() => info("Copied", "SHA-256 hash copied to clipboard.")}
@@ -109,6 +120,147 @@ function HashCell({ hash }) {
         </Button>
       </CopyToClipboard>
     </span>
+  );
+}
+
+function EvidenceCard({ row, busy, canUpdate, onValidate, onVerify }) {
+  const detailPath = Routes.EvidenceDetail.path.replace(":id", row.evidence_id);
+  const hash = sha256Of(row);
+  const isMemory = row.evidence_type === EVIDENCE_TYPE.MEMORY_DUMP;
+
+  return (
+    <Card border="light" className="shadow-sm h-100">
+      <Card.Body className="d-flex flex-column">
+        <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <Link
+            to={detailPath}
+            className="fw-bold text-decoration-none"
+            title={row.evidence_id}
+          >
+            {formatEvidenceId(row.evidence_id)}
+          </Link>
+          <StatusBadge status={row.status} type="evidence" />
+        </div>
+
+        <h5 className="h6 mb-2">
+          <Link to={detailPath} className="text-dark text-decoration-none">
+            {humanizeFileName(row.file_name, formatEvidenceId(row.evidence_id))}
+          </Link>
+        </h5>
+
+        <div className="mb-3">
+          <Badge bg={isMemory ? "info" : "secondary"}>{typeLabel(row.evidence_type)}</Badge>
+        </div>
+
+        <ul className="list-unstyled small text-muted mb-3 flex-grow-1">
+          <li className="d-flex align-items-start mb-2">
+            <FontAwesomeIcon icon={faFolderOpen} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Case
+              </span>
+              <br />
+              {row.case_id ? (
+                <Link
+                  to={Routes.CaseDetail.path.replace(":id", row.case_id)}
+                  className="text-dark"
+                  title={row.case_name || row.case_id}
+                >
+                  {caseDisplayName(row)}
+                </Link>
+              ) : (
+                <span className="text-dark">—</span>
+              )}
+            </span>
+          </li>
+          <li className="d-flex align-items-start mb-2">
+            <FontAwesomeIcon icon={faDatabase} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Size
+              </span>
+              <br />
+              <span className="text-dark">{formatBytes(row.file_size_bytes)}</span>
+            </span>
+          </li>
+          <li className="d-flex align-items-start mb-2">
+            <FontAwesomeIcon icon={faFileAlt} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                MIME
+              </span>
+              <br />
+              <span className="text-dark text-break">{row.mime_type || "—"}</span>
+            </span>
+          </li>
+          <li className="d-flex align-items-start mb-2">
+            <FontAwesomeIcon icon={faShieldAlt} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Hash
+              </span>
+              <br />
+              <HashCell hash={hash} />
+            </span>
+          </li>
+          <li className="d-flex align-items-start">
+            <FontAwesomeIcon icon={faClock} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Registered
+              </span>
+              <br />
+              <span className="text-dark">{formatDateRelative(row.registered_at)}</span>
+            </span>
+          </li>
+        </ul>
+
+        <div className="d-flex flex-wrap gap-2 mt-auto pt-2 border-top border-light">
+          <Button
+            as={Link}
+            to={detailPath}
+            variant="outline-primary"
+            size="sm"
+            title="View"
+          >
+            <FontAwesomeIcon icon={faEye} className="me-1" />
+            View
+          </Button>
+          {canUpdate ? (
+            <>
+              <Button
+                variant="outline-success"
+                size="sm"
+                disabled={busy}
+                title="Re-run evidence validation"
+                onClick={() => onValidate(row)}
+              >
+                {busy ? (
+                  <Spinner animation="border" size="sm" className="me-1" />
+                ) : (
+                  <FontAwesomeIcon icon={faCheckCircle} className="me-1" />
+                )}
+                Validate
+              </Button>
+              <Button
+                variant="outline-info"
+                size="sm"
+                disabled={busy}
+                title="Verify SHA-256 integrity"
+                onClick={() => onVerify(row)}
+              >
+                {busy ? (
+                  <Spinner animation="border" size="sm" className="me-1" />
+                ) : (
+                  <FontAwesomeIcon icon={faShieldAlt} className="me-1" />
+                )}
+                Verify
+              </Button>
+            </>
+          ) : null}
+        </div>
+      </Card.Body>
+    </Card>
   );
 }
 
@@ -143,18 +295,15 @@ export default function EvidenceInventory() {
   filtersRef.current = { caseFilter, statusFilter, typeFilter, search };
 
   useEffect(() => {
-    casesService
-      .list()
+    fetchCasesCached()
       .then((result) => {
-        const items = Array.isArray(result?.cases) ? result.cases : [];
-        setCases(items);
+        setCases(normaliseCasesList(result));
       })
       .catch(() => setCases([]));
   }, []);
 
   useEffect(() => {
-    evidenceService
-      .getStatistics()
+    fetchEvidenceStatisticsCached()
       .then(setStats)
       .catch(() => setStats(null));
   }, []);
@@ -170,7 +319,7 @@ export default function EvidenceInventory() {
     const params = {};
     if (caseId) params.case_id = caseId;
 
-    const result = await evidenceService.getInventory(params);
+    const result = await fetchEvidenceInventoryCached(params);
     let items = Array.isArray(result?.items) ? result.items : [];
 
     if (status) {
@@ -225,7 +374,7 @@ export default function EvidenceInventory() {
     total,
     goToPage,
     refresh,
-  } = usePagination(fetchInventory, { pageSize: 20 });
+  } = usePagination(fetchInventory, { pageSize: PAGE_SIZE });
 
   useEffect(() => {
     goToPage(1).catch(() => {});
@@ -309,142 +458,8 @@ export default function EvidenceInventory() {
     }
   };
 
-  const columns = useMemo(
-    () => [
-      {
-        key: "evidence_id",
-        header: "Evidence ID",
-        sortable: true,
-        render: (row) => (
-          <Link
-            to={Routes.EvidenceDetail.path.replace(":id", row.evidence_id)}
-            className="fw-bold"
-            title={row.evidence_id}
-          >
-            {formatEvidenceId(row.evidence_id)}
-          </Link>
-        ),
-      },
-      {
-        key: "file_name",
-        header: "File Name",
-        sortable: true,
-        render: (row) => (
-          <span title={row.file_name || undefined}>
-            {humanizeFileName(row.file_name)}
-          </span>
-        ),
-      },
-      {
-        key: "case",
-        header: "Case",
-        render: (row) =>
-          row.case_id ? (
-            <Link
-              to={Routes.CaseDetail.path.replace(":id", row.case_id)}
-              title={row.case_name || row.case_id}
-            >
-              {caseDisplayName(row)}
-            </Link>
-          ) : (
-            "—"
-          ),
-      },
-      {
-        key: "evidence_type",
-        header: "Type",
-        sortable: true,
-        render: (row) => (
-          <Badge
-            bg={
-              row.evidence_type === EVIDENCE_TYPE.MEMORY_DUMP
-                ? "info"
-                : "secondary"
-            }
-          >
-            {typeLabel(row.evidence_type)}
-          </Badge>
-        ),
-      },
-      {
-        key: "status",
-        header: "Status",
-        sortable: true,
-        render: (row) => <StatusBadge status={row.status} type="evidence" />,
-      },
-      {
-        key: "file_size_bytes",
-        header: "Size",
-        sortable: true,
-        render: (row) => formatBytes(row.file_size_bytes),
-      },
-      {
-        key: "mime_type",
-        header: "MIME Type",
-        render: (row) => row.mime_type || "—",
-      },
-      {
-        key: "hash",
-        header: "Hash",
-        render: (row) => <HashCell hash={sha256Of(row)} />,
-      },
-      {
-        key: "registered_at",
-        header: "Registered",
-        sortable: true,
-        render: (row) => formatDateRelative(row.registered_at),
-      },
-    ],
-    []
-  );
-
-  const renderActions = (row) => {
-    const busy = actionBusy === row.evidence_id;
-    return (
-      <div className="d-flex justify-content-end flex-wrap gap-1">
-        <Button
-          as={Link}
-          to={Routes.EvidenceDetail.path.replace(":id", row.evidence_id)}
-          variant="outline-primary"
-          size="sm"
-          title="View"
-        >
-          <FontAwesomeIcon icon={faEye} className="me-1" />
-          View
-        </Button>
-        {canUpdate ? (
-          <>
-            <OverlayTrigger
-              overlay={<Tooltip>Re-run evidence validation</Tooltip>}
-            >
-              <Button
-                variant="outline-success"
-                size="sm"
-                disabled={busy}
-                onClick={() => handleValidate(row)}
-              >
-                <FontAwesomeIcon icon={faCheckCircle} className="me-1" />
-                Validate
-              </Button>
-            </OverlayTrigger>
-            <OverlayTrigger
-              overlay={<Tooltip>Verify SHA-256 integrity</Tooltip>}
-            >
-              <Button
-                variant="outline-info"
-                size="sm"
-                disabled={busy}
-                onClick={() => handleVerify(row)}
-              >
-                <FontAwesomeIcon icon={faShieldAlt} className="me-1" />
-                Verify Integrity
-              </Button>
-            </OverlayTrigger>
-          </>
-        ) : null}
-      </div>
-    );
-  };
+  const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize) || 1);
+  const showPagination = !loading && total > pageSize;
 
   return (
     <Container fluid className="px-0">
@@ -598,20 +613,80 @@ export default function EvidenceInventory() {
         />
       ) : null}
 
-      <Card border="light" className="shadow-sm">
-        <Card.Body className="p-0">
-          <DataTable
-            columns={columns}
-            data={data}
-            loading={loading}
-            sortable
-            emptyMessage="No evidence found. Register a forensic image to begin."
-            pagination={{ page, pageSize, total }}
-            onPageChange={(next) => goToPage(next).catch(() => {})}
-            actions={renderActions}
-          />
-        </Card.Body>
-      </Card>
+      {loading ? (
+        <Row className="g-3 mb-3">
+          {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+            <Col key={`skeleton-${index}`} xs={12} md={6} xl={4}>
+              <Card border="light" className="shadow-sm h-100">
+                <Card.Body>
+                  <SkeletonLoader type="text" rows={6} />
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      ) : data.length === 0 ? (
+        <Card border="light" className="shadow-sm">
+          <Card.Body>
+            <EmptyState
+              title="No evidence found"
+              description="Register a forensic image to begin."
+            />
+            {canCreate ? (
+              <div className="text-center pb-2">
+                <Button
+                  variant="primary"
+                  onClick={() => history.push(Routes.EvidenceRegister.path)}
+                >
+                  <FontAwesomeIcon icon={faPlus} className="me-2" />
+                  Register Evidence
+                </Button>
+              </div>
+            ) : null}
+          </Card.Body>
+        </Card>
+      ) : (
+        <>
+          <Row className="g-3 mb-3" aria-label="Evidence inventory">
+            {data.map((row) => (
+              <Col key={row.evidence_id} xs={12} md={6} xl={4}>
+                <EvidenceCard
+                  row={row}
+                  busy={actionBusy === row.evidence_id}
+                  canUpdate={canUpdate}
+                  onValidate={handleValidate}
+                  onVerify={handleVerify}
+                />
+              </Col>
+            ))}
+          </Row>
+
+          {showPagination ? (
+            <div className="d-flex justify-content-between align-items-center px-1 pb-2">
+              <span className="small text-muted">
+                Page {page} of {totalPages} ({total} total)
+              </span>
+              <nav aria-label="Evidence pagination">
+                <Pagination className="mb-0">
+                  <Pagination.Prev
+                    disabled={page <= 1}
+                    aria-label="Previous page"
+                    onClick={() => goToPage(page - 1).catch(() => {})}
+                  />
+                  <Pagination.Item active aria-current="page">
+                    {page}
+                  </Pagination.Item>
+                  <Pagination.Next
+                    disabled={page >= totalPages}
+                    aria-label="Next page"
+                    onClick={() => goToPage(page + 1).catch(() => {})}
+                  />
+                </Pagination>
+              </nav>
+            </div>
+          ) : null}
+        </>
+      )}
     </Container>
   );
 }

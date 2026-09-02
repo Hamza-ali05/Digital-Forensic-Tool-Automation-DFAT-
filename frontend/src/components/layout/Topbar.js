@@ -212,7 +212,7 @@ export default function Topbar({ onToggleSidebar }) {
                 >
                   <FontAwesomeIcon icon={faKey} className="me-2" /> Change password
                 </Dropdown.Item>
-                <Dropdown.Item as={Link} to={Routes.Settings.path} className="fw-bold">
+                <Dropdown.Item as={Link} to={Routes.Profile.path} className="fw-bold">
                   <FontAwesomeIcon icon={faCog} className="me-2" /> Settings
                 </Dropdown.Item>
                 <Dropdown.Divider />

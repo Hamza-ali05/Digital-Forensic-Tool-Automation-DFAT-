@@ -36,6 +36,7 @@ from dfat.api.dependencies import (
     get_ai_monitor,
     get_ai_response_cache,
     get_artefact_repository,
+    get_db_report_repository,
     get_fallback_analyzer,
     get_llm_client,
     get_llm_connection_manager,
@@ -50,6 +51,8 @@ from dfat.database.models.ai_orm import AIAnalysisRecordORM
 from dfat.database.models.user import UserORM
 from dfat.database.repositories.ai_analysis_repo import SQLAlchemyAIAnalysisRepository
 from dfat.database.repositories.artefact_repo import SQLAlchemyArtefactRepository
+from dfat.database.repositories.report_repo import SQLAlchemyReportRepository
+from dfat.services.artefact_hydration import require_artefact_set_for_evidence
 
 router = APIRouter(prefix="/ai", tags=["AI Analysis"])
 
@@ -90,16 +93,19 @@ def _classifications_from_ranked(
 
 async def _require_artefact_set(
     artefact_repo: SQLAlchemyArtefactRepository,
+    report_repo: SQLAlchemyReportRepository,
     evidence_id: str,
+    *,
+    allow_empty: bool = False,
 ) -> ArtefactSet:
-    """Load artefacts for evidence or raise ``EvidenceNotFoundError``."""
-    artefact_set = await artefact_repo.get(evidence_id)
-    if artefact_set is None or not artefact_set.artefacts:
-        raise EvidenceNotFoundError(
-            f"No artefacts found for evidence_id={evidence_id}",
-            context={"evidence_id": evidence_id},
-        )
-    return artefact_set
+    """Load artefacts for evidence, hydrating from the latest report when needed."""
+    return await require_artefact_set_for_evidence(
+        artefact_repo,
+        report_repo,
+        evidence_id,
+        purpose="analysis",
+        allow_empty=allow_empty,
+    )
 
 
 async def _persist_analysis(
@@ -144,13 +150,20 @@ async def classify_artefacts(
     llm_client: LocalLLMClient = Depends(get_llm_client),
     fallback: RuleBasedAnalyzer = Depends(get_fallback_analyzer),
     artefact_repo: SQLAlchemyArtefactRepository = Depends(get_artefact_repository),
+    report_repo: SQLAlchemyReportRepository = Depends(get_db_report_repository),
     ai_repo: SQLAlchemyAIAnalysisRepository = Depends(get_ai_analysis_repo),
 ) -> ClassifyResponse:
     """Run AI (or rule-based) classification on an evidence artefact set."""
-    artefact_set = await _require_artefact_set(artefact_repo, body.evidence_id)
+    artefact_set = await _require_artefact_set(
+        artefact_repo,
+        report_repo,
+        body.evidence_id,
+        allow_empty=True,
+    )
+    use_fallback = body.use_fallback or not artefact_set.artefacts
     started = time.perf_counter()
 
-    if body.use_fallback:
+    if use_fallback:
         ranked = fallback.analyze(artefact_set)
         model_used = fallback.analyzer_name
     else:
@@ -207,14 +220,21 @@ async def summarize_evidence(
     llm_client: LocalLLMClient = Depends(get_llm_client),
     fallback: RuleBasedAnalyzer = Depends(get_fallback_analyzer),
     artefact_repo: SQLAlchemyArtefactRepository = Depends(get_artefact_repository),
+    report_repo: SQLAlchemyReportRepository = Depends(get_db_report_repository),
     ai_repo: SQLAlchemyAIAnalysisRepository = Depends(get_ai_analysis_repo),
 ) -> SummarizeResponse:
     """Generate an investigative summary for an evidence artefact set."""
-    artefact_set = await _require_artefact_set(artefact_repo, body.evidence_id)
+    artefact_set = await _require_artefact_set(
+        artefact_repo,
+        report_repo,
+        body.evidence_id,
+        allow_empty=True,
+    )
     ranked = _as_ranked(list(artefact_set.artefacts))
+    use_fallback = body.use_fallback or not ranked
     started = time.perf_counter()
 
-    if body.use_fallback:
+    if use_fallback:
         text = fallback.summarize(ranked)
         model_used = fallback.analyzer_name
         summary = SummaryResult(
@@ -307,10 +327,16 @@ async def ask_question(
     llm_client: LocalLLMClient = Depends(get_llm_client),
     qa_assistant: InvestigatorQAAssistant = Depends(get_qa_assistant),
     artefact_repo: SQLAlchemyArtefactRepository = Depends(get_artefact_repository),
+    report_repo: SQLAlchemyReportRepository = Depends(get_db_report_repository),
     ai_repo: SQLAlchemyAIAnalysisRepository = Depends(get_ai_analysis_repo),
 ) -> AskResponse:
     """Ask a natural-language question about evidence artefacts."""
-    artefact_set = await _require_artefact_set(artefact_repo, body.evidence_id)
+    artefact_set = await _require_artefact_set(
+        artefact_repo,
+        report_repo,
+        body.evidence_id,
+        allow_empty=True,
+    )
     ranked = _as_ranked(list(artefact_set.artefacts))
     started = time.perf_counter()
     qa = await qa_assistant.ask(

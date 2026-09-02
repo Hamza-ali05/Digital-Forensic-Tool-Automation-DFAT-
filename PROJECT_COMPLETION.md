@@ -3,9 +3,6 @@
 ## Project Overview
 
 - **Title:** Digital Forensics Automation Tool with AI-Assisted Evidence Analysis
-- **Student:** Muhammad Aaqif Afzaal (100176885)
-- **Programme:** MSc Cybersecurity, Canterbury Christ Church University
-- **Supervisor:** Dr. Mandy Qi
 - **Module:** Professional Research Methods and Project (P18736)
 - **Submission Deadline:** 22 October 2026
 

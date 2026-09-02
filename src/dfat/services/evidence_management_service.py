@@ -265,17 +265,12 @@ class EvidenceManagementService:
         evidence_ids = [evidence.evidence_id for evidence in evidence_list]
         status_map = await self._status_repo.get_current_statuses(evidence_ids)
         metadata_map = await self._metadata_repo.get_by_evidence_ids(evidence_ids)
-        chains_map = await self._custody.get_custody_chains(evidence_ids)
+        summaries_map = await self._custody.get_custody_summaries(evidence_ids)
 
         inventory: list[EvidenceInventoryItem] = []
         for evidence in evidence_list:
-            chain = chains_map.get(evidence.evidence_id, [])
+            summary = summaries_map.get(evidence.evidence_id, {})
             metadata = metadata_map.get(evidence.evidence_id)
-            last_verified = None
-            for record in reversed(chain):
-                if record.action is CustodyAction.ACCESSED:
-                    last_verified = record.timestamp
-                    break
             inventory.append(
                 EvidenceInventoryItem(
                     evidence_id=evidence.evidence_id,
@@ -289,8 +284,8 @@ class EvidenceManagementService:
                     mime_type=metadata.mime_type if metadata else None,
                     file_size_bytes=evidence.file_size_bytes,
                     registered_at=evidence.case.created_at,
-                    last_verified_at=last_verified,
-                    custody_actions_count=len(chain),
+                    last_verified_at=summary.get("last_verified_at"),
+                    custody_actions_count=int(summary.get("custody_actions_count") or 0),
                 )
             )
         return inventory
@@ -379,6 +374,68 @@ class EvidenceManagementService:
             "timestamp": timestamp.isoformat(),
             "discrepancies": discrepancies,
             "custody_record": custody_record,
+        }
+
+    async def batch_verify_evidence(
+        self,
+        user_id: str,
+        user_name: str,
+        *,
+        case_id: Optional[str] = None,
+        evidence_ids: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        """Verify integrity for many evidence items in one server-side pass."""
+        inventory = await self.get_evidence_inventory(case_id=case_id)
+        name_by_id = {item.evidence_id: item.file_name for item in inventory}
+
+        if evidence_ids:
+            target_ids = list(dict.fromkeys(evidence_ids))
+        else:
+            target_ids = [item.evidence_id for item in inventory]
+
+        items: list[dict[str, Any]] = []
+        passed = 0
+        for evidence_id in target_ids:
+            file_name = name_by_id.get(evidence_id)
+            try:
+                result = await self.verify_evidence(
+                    evidence_id,
+                    user_id,
+                    user_name,
+                )
+                verified = bool(result["integrity_verified"])
+                if verified:
+                    passed += 1
+                items.append(
+                    {
+                        "evidence_id": evidence_id,
+                        "file_name": file_name,
+                        "integrity_verified": verified,
+                        "hash_set": dict(result.get("hash_set") or {}),
+                        "timestamp": str(result["timestamp"]),
+                        "discrepancies": dict(result.get("discrepancies") or {}),
+                        "error": None,
+                    }
+                )
+            except Exception as exc:  # noqa: BLE001 — per-item batch isolation
+                items.append(
+                    {
+                        "evidence_id": evidence_id,
+                        "file_name": file_name,
+                        "integrity_verified": False,
+                        "hash_set": {},
+                        "timestamp": datetime.now(UTC).isoformat(),
+                        "discrepancies": {},
+                        "error": str(exc),
+                    }
+                )
+
+        failed = len(items) - passed
+        return {
+            "items": items,
+            "total": len(items),
+            "passed": passed,
+            "failed": failed,
         }
 
     async def transition_evidence_status(

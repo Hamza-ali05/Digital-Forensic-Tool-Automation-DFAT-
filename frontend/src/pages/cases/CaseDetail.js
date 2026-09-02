@@ -261,16 +261,11 @@ export default function CaseDetail() {
 
     try {
       if (action === "open") {
-        if (!hasLead) {
-          notifyError(
-            "Cannot open case",
-            "Assign a lead investigator before opening the case."
-          );
-          return;
-        }
         await openDialog({
           title: "Open case?",
-          message: "Transition this case from Created to Open.",
+          message: hasLead
+            ? "Transition this case from Created to Open."
+            : "No lead is assigned yet. Opening will assign you as lead investigator, then move the case to Open.",
           confirmLabel: "Open Case",
         });
         await runTransition("Open case", () => casesService.open(caseId));
@@ -458,10 +453,9 @@ export default function CaseDetail() {
         label: "Open Case",
         icon: faFolderOpen,
         variant: "primary",
-        disabled: !hasLead,
         title: hasLead
           ? "Open case"
-          : "Assign a lead investigator first",
+          : "Open case (you will be assigned as lead)",
       });
     }
     if (status === CASE_STATUS.OPEN) {
@@ -759,7 +753,7 @@ export default function CaseDetail() {
                 {investigators.length === 0 ? (
                   <EmptyState
                     title="No investigators assigned"
-                    description="Assign a lead investigator before opening the case."
+                    description="Opening the case will assign you as lead, or you can assign investigators here first."
                   />
                 ) : (
                   <Table responsive hover className="align-middle">

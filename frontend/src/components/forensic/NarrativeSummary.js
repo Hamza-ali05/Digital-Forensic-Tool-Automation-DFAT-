@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import {
-  Alert,
   Badge,
   Button,
   Card,
@@ -13,7 +12,6 @@ import {
   faCaretDown,
   faCaretRight,
   faDownload,
-  faExclamationTriangle,
 } from "@fortawesome/free-solid-svg-icons";
 
 import ConfidenceMeter from "components/forensic/ConfidenceMeter";
@@ -158,7 +156,7 @@ function SectionCard({ title, body, artefactIds, onArtefactClick, defaultOpen })
 }
 
 /**
- * Collapsible investigative narrative with disclaimer and artefact ID links.
+ * Collapsible investigative narrative with artefact ID links.
  */
 export default function NarrativeSummary({
   narrative,
@@ -190,13 +188,6 @@ export default function NarrativeSummary({
 
   return (
     <>
-      <Alert variant="danger" className="mb-4">
-        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
-        LLM Disclaimer: AI-generated analysis uses base LLaMA-3 and should be
-        verified against the structured JSON artefact data. This narrative is
-        advisory only and is not the evidential record (Scanlon et al., 2023).
-      </Alert>
-
       <Card border="light" className="shadow-sm mb-4">
         <Card.Body>
           <Row className="g-3 align-items-center">

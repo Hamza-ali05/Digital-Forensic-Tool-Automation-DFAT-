@@ -1561,6 +1561,8 @@ class ServicesContainer(containers.DeclarativeContainer):
         response_collector=response_collector,
         performance_analyzer=performance_analyzer,
         questionnaire=questionnaire_model,
+        report_repo=report_repo,
+        output_dir=providers.Callable(_output_dir, settings),
     )
 
 

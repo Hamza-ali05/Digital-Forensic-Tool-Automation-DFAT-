@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useHistory, useLocation } from "react-router-dom";
 import {
   Alert,
@@ -55,6 +55,14 @@ export default function PipelineRun() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,12 +123,12 @@ export default function PipelineRun() {
     () => evidenceItems.find((item) => item.evidence_id === evidenceId) || null,
     [evidenceItems, evidenceId]
   );
+  const selectedEvidenceCaseId = selectedEvidence?.case_id || "";
 
   useEffect(() => {
-    if (selectedEvidence?.case_id) {
-      setCaseId(selectedEvidence.case_id);
-    }
-  }, [selectedEvidence]);
+    if (!selectedEvidenceCaseId) return;
+    setCaseId(selectedEvidenceCaseId);
+  }, [selectedEvidenceCaseId]);
 
   const aiOk = isAiHealthy(aiHealth);
 
@@ -164,10 +172,11 @@ export default function PipelineRun() {
       }
     } catch (err) {
       const message = err?.message || "Unable to start the pipeline.";
-      setFormError(message);
+      if (mountedRef.current) {
+        setFormError(message);
+        setSubmitting(false);
+      }
       notifyError("Start failed", message);
-    } finally {
-      setSubmitting(false);
     }
   };
 

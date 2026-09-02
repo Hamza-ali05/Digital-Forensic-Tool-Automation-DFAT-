@@ -4,8 +4,7 @@
     "title": "DFAT — Digital Forensics Automation Tool API",
     "description": "REST API for the Digital Forensics Automation Tool with AI-Assisted Evidence Analysis. Supports forensic evidence management, automated analysis via local LLaMA-3, dual-output reporting, and DFRWS/CFReDS benchmark evaluation.",
     "contact": {
-      "name": "Muhammad Aaqif Afzaal",
-      "email": "100176885@canterbury.ac.uk"
+      "name": "DFAT"
     },
     "license": {
       "name": "MIT"
@@ -13,28 +12,6 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/api/v1/health": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "Health",
-        "description": "Basic liveness check (no authentication).",
-        "operationId": "health_api_v1_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/health/ready": {
       "get": {
         "tags": [

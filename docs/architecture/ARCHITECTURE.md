@@ -1,6 +1,6 @@
 # DFAT System Architecture
 
-DFAT (Digital Forensics Automation Tool with AI-Assisted Evidence Analysis) is a local-first digital-forensics platform developed as an MSc Cybersecurity research artefact at Canterbury Christ Church University. The architecture is organized around a five-stage forensic pipeline, a layered service design, explicit chain-of-custody controls, and a local-only AI analysis subsystem.
+DFAT (Digital Forensics Automation Tool with AI-Assisted Evidence Analysis) is a local-first digital-forensics platform. The architecture is organized around a five-stage forensic pipeline, a layered service design, explicit chain-of-custody controls, and a local-only AI analysis subsystem.
 
 Related architecture documents:
 

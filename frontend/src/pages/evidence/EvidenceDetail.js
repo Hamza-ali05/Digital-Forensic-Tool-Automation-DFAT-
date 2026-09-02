@@ -34,10 +34,17 @@ import HashSetDisplay from "components/forensic/HashSetDisplay";
 import StatusTimeline from "components/forensic/StatusTimeline";
 import { EVIDENCE_STATUS, EVIDENCE_TYPE } from "utils/constants";
 import {
+  buildEvidenceMetadataRows,
   formatBytes,
   formatCaseId,
   formatDate,
+  formatEvidenceId,
   formatHash,
+  humanizeActor,
+  humanizeEvidenceReason,
+  humanizeFieldKey,
+  humanizeFileName,
+  humanizeLabel,
 } from "utils/formatters";
 import usePermission from "hooks/usePermission";
 import useNotification from "hooks/useNotification";
@@ -71,9 +78,25 @@ function typeLabel(type) {
 }
 
 function actionLabel(action) {
-  return String(action || "")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return humanizeFieldKey(action);
+}
+
+function statusSummary(entry) {
+  const status = humanizeFieldKey(entry.new_status || entry.status);
+  const reason = String(entry.reason || "").trim();
+  if (reason && reason.toLowerCase() !== status.toLowerCase()) {
+    return reason;
+  }
+  if (entry.new_status === "validated" || entry.status === "validated") {
+    return "Evidence passed format and integrity checks.";
+  }
+  if (entry.new_status === "validating" || entry.status === "validating") {
+    return "Validation checks were started.";
+  }
+  if (entry.new_status === "registered" || entry.status === "registered") {
+    return "Evidence was added to the register.";
+  }
+  return reason || `${status} status recorded.`;
 }
 
 /**
@@ -180,6 +203,28 @@ export default function EvidenceDetail() {
   const custodyTimeline = useMemo(
     () => [...custodyEntries].reverse(),
     [custodyEntries]
+  );
+
+  const reasonContext = useMemo(
+    () => ({
+      caseId: detail?.case_id,
+      caseName: humanizeLabel(detail?.case_name, ""),
+    }),
+    [detail]
+  );
+
+  const metadataRows = useMemo(
+    () =>
+      buildEvidenceMetadataRows(metadata, {
+        skipKeys: [
+          "file_created_at",
+          "file_modified_at",
+          "file_accessed_at",
+          "mime_detected_from",
+          "file_extension",
+        ],
+      }),
+    [metadata]
   );
 
   const latestJob = jobs[0] || null;
@@ -309,7 +354,7 @@ export default function EvidenceDetail() {
     );
   }
 
-  const fileName = basename(detail?.file_path);
+  const fileName = humanizeFileName(basename(detail?.file_path));
   const isQuarantined =
     String(status).toLowerCase() === EVIDENCE_STATUS.QUARANTINED;
 
@@ -317,7 +362,7 @@ export default function EvidenceDetail() {
     <Container fluid className="px-0">
       <PageHeader
         title={fileName}
-        subtitle={String(evidenceId || "").slice(0, 8)}
+        subtitle={formatEvidenceId(evidenceId)}
         actions={
           <div className="d-flex flex-wrap align-items-center gap-2">
             <Badge
@@ -608,11 +653,17 @@ export default function EvidenceDetail() {
                       </div>
                       <div className="small text-muted">
                         {formatDate(entry.changed_at)} ·{" "}
-                        {entry.changed_by_user_id || "system"}
+                        {humanizeActor(
+                          entry.changed_by_name,
+                          entry.changed_by_user_id
+                        )}
                       </div>
-                      {entry.reason ? (
-                        <div className="small mt-1">{entry.reason}</div>
-                      ) : null}
+                      <div className="small mt-1">
+                        {humanizeEvidenceReason(
+                          statusSummary(entry),
+                          reasonContext
+                        )}
+                      </div>
                     </div>
                   )}
                 />
@@ -679,31 +730,33 @@ export default function EvidenceDetail() {
                         </div>
                         <div className="small text-muted">
                           {formatDate(entry.timestamp)} ·{" "}
-                          {entry.performed_by_name ||
-                            entry.performed_by_user_id ||
-                            "system"}
+                          {humanizeActor(
+                            entry.performed_by_name,
+                            entry.performed_by_user_id
+                          )}
                         </div>
                         {entry.reason ? (
-                          <div className="small mt-1">{entry.reason}</div>
+                          <div className="small mt-1">
+                            {humanizeEvidenceReason(entry.reason, reasonContext)}
+                          </div>
                         ) : null}
                         {entry.hash_at_action ? (
-                          <div className="small mt-1">
-                            Hash:{" "}
-                            <code>{formatHash(entry.hash_at_action, 12)}</code>
+                          <div className="small mt-1 text-muted">
+                            Integrity fingerprint recorded at this step
                             <Button
                               variant="link"
                               size="sm"
-                              className="p-0 ms-2"
+                              className="p-0 ms-2 align-baseline"
                               onClick={() => {
                                 if (navigator.clipboard?.writeText) {
                                   navigator.clipboard.writeText(
                                     entry.hash_at_action
                                   );
-                                  info("Copied", "Custody hash copied.");
+                                  info("Copied", "Integrity fingerprint copied.");
                                 }
                               }}
                             >
-                              Copy
+                              Copy SHA-256 ({formatHash(entry.hash_at_action, 8)})
                             </Button>
                           </div>
                         ) : null}
@@ -748,18 +801,53 @@ export default function EvidenceDetail() {
                     </Table>
                   </Col>
                   <Col xs={12} lg={7}>
-                    <h2 className="h5 mb-3">Full metadata</h2>
-                    <pre
-                      className="bg-light border rounded p-3 small mb-0"
-                      style={{
-                        maxHeight: 420,
-                        overflow: "auto",
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {JSON.stringify(metadata, null, 2) || "{}"}
-                    </pre>
+                    <h2 className="h5 mb-3">Additional details</h2>
+                    {metadataRows.length ? (
+                      <Table borderless className="mb-0">
+                        <tbody>
+                          {metadataRows.map((row) => (
+                            <tr key={row.key}>
+                              <th
+                                className="ps-0 text-muted align-top"
+                                style={{ width: "38%" }}
+                              >
+                                {row.label}
+                              </th>
+                              <td className="text-break">
+                                {String(row.key).startsWith("hash_") ? (
+                                  <>
+                                    <span className="text-muted">
+                                      {formatHash(row.value, 16)}
+                                    </span>
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      className="p-0 ms-2 align-baseline"
+                                      onClick={() => {
+                                        if (navigator.clipboard?.writeText) {
+                                          navigator.clipboard.writeText(
+                                            String(row.value)
+                                          );
+                                          info("Copied", `${row.label} copied.`);
+                                        }
+                                      }}
+                                    >
+                                      Copy full
+                                    </Button>
+                                  </>
+                                ) : (
+                                  row.value
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    ) : (
+                      <p className="text-muted mb-0 small">
+                        No additional metadata recorded.
+                      </p>
+                    )}
                   </Col>
                 </Row>
               </Tab.Pane>

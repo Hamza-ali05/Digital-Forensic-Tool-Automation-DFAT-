@@ -338,7 +338,8 @@ echo
 # ---------------------------------------------------------------------------
 log "Starting backend..."
 PYTHONPATH="${ROOT}/src" DFAT_ENV=development PYTHONDONTWRITEBYTECODE=1 \
-  python -m uvicorn dfat.app:create_app --factory --host 0.0.0.0 --port 8000 --reload &
+  python -m uvicorn dfat.app:create_app --factory --host 0.0.0.0 --port 8000 \
+  --reload --reload-dir "${ROOT}/src/dfat" --reload-delay 1 &
 BACKEND_PID=$!
 echo "$BACKEND_PID" > "$BACKEND_PID_FILE"
 echo "Backend starting on http://localhost:8000"

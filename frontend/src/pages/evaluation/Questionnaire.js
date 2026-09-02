@@ -12,7 +12,6 @@ import {
   faCaretDown,
   faCaretRight,
   faCheckCircle,
-  faUniversity,
 } from "@fortawesome/free-solid-svg-icons";
 
 import ApiErrorDisplay from "components/common/ApiErrorDisplay";
@@ -151,6 +150,7 @@ export default function Questionnaire() {
   const [submitError, setSubmitError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [participantId, setParticipantId] = useState(null);
+  const [consented, setConsented] = useState(false);
 
   const loadInstrument = useCallback(async () => {
     setLoading(true);
@@ -207,6 +207,9 @@ export default function Questionnaire() {
         next[question.id] = true;
       }
     });
+    if (!consented) {
+      next.consent = true;
+    }
     setFieldErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -257,11 +260,7 @@ export default function Questionnaire() {
   return (
     <div className="mx-auto" style={{ maxWidth: 800 }}>
       <header className="text-center mb-4">
-        <div className="text-primary mb-2">
-          <FontAwesomeIcon icon={faUniversity} size="2x" aria-hidden="true" />
-        </div>
         <h1 className="h3 mb-1">DFAT Usability Assessment</h1>
-        <p className="text-muted mb-0">Canterbury Christ Church University</p>
       </header>
 
       <Card border="light" className="shadow-sm mb-4">
@@ -289,9 +288,30 @@ export default function Questionnaire() {
                 research only. Participation is voluntary and you may withdraw at
                 any time. No personally identifiable information is collected.
               </p>
-              <p className="mb-0 fw-semibold">
+              <p className="mb-3 fw-semibold">
                 By submitting this form, you consent to participate in this study.
               </p>
+              <Form.Check
+                type="checkbox"
+                id="consent-participate"
+                label="I have read the participant information and I consent to take part."
+                checked={consented}
+                onChange={(event) => {
+                  setConsented(event.target.checked);
+                  setFieldErrors((prev) => {
+                    if (!prev.consent) return prev;
+                    const next = { ...prev };
+                    delete next.consent;
+                    return next;
+                  });
+                }}
+                isInvalid={Boolean(fieldErrors.consent)}
+              />
+              {fieldErrors.consent ? (
+                <div className="invalid-feedback d-block">
+                  Consent is required before submitting.
+                </div>
+              ) : null}
             </Card.Body>
           </div>
         </Collapse>

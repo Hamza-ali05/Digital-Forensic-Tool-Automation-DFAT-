@@ -22,6 +22,7 @@ import { formatDate, formatDuration } from "utils/formatters";
 import {
   evidenceOptionId,
   evidenceOptionLabel,
+  loadArtefactsForEvidence,
   loadEvidenceOptions,
 } from "utils/artefactLoader";
 import { validateRequired } from "utils/validators";
@@ -179,7 +180,10 @@ export default function BenchmarkRun() {
   const [datasetName, setDatasetName] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [offlineSubmitting, setOfflineSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [artefacts, setArtefacts] = useState([]);
+  const [artefactsLoading, setArtefactsLoading] = useState(false);
 
   const [latest, setLatest] = useState(null);
   const [loadingLatest, setLoadingLatest] = useState(true);
@@ -233,6 +237,26 @@ export default function BenchmarkRun() {
     }
   }, [datasetOptions, datasetName]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setArtefacts([]);
+    if (!evidenceId) return undefined;
+    setArtefactsLoading(true);
+    (async () => {
+      try {
+        const { artefacts: rows } = await loadArtefactsForEvidence(evidenceId);
+        if (!cancelled) setArtefacts(rows);
+      } catch {
+        if (!cancelled) setArtefacts([]);
+      } finally {
+        if (!cancelled) setArtefactsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [evidenceId]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const errors = {
@@ -241,6 +265,13 @@ export default function BenchmarkRun() {
     };
     setFieldErrors(errors);
     if (errors.evidenceId || errors.datasetName) return;
+    if (!artefacts.length) {
+      notifyError(
+        "No artefacts available",
+        "This evidence has no parsed artefacts. Run the pipeline on a valid forensic image, or use Offline Benchmark below."
+      );
+      return;
+    }
 
     setSubmitting(true);
     setFormError(null);
@@ -264,6 +295,38 @@ export default function BenchmarkRun() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleOfflineSubmit = async (event) => {
+    event.preventDefault();
+    const errors = {
+      datasetName: validateRequired(datasetName, "Dataset name"),
+    };
+    setFieldErrors(errors);
+    if (errors.datasetName) return;
+
+    setOfflineSubmitting(true);
+    setFormError(null);
+    try {
+      const result = await evaluationService.runOfflineBenchmark({
+        ground_truth_dataset: datasetName,
+        dataset_source: datasetSource,
+        dataset_name: datasetName,
+      });
+      setLatest(result);
+      success(
+        "Offline benchmark complete",
+        `${datasetName} scored F1 ${scoreToPercent(result.f1_score).toFixed(1)}%.`
+      );
+    } catch (err) {
+      setFormError(err);
+      notifyError(
+        "Offline benchmark failed",
+        err?.message || "Could not compare the local ground-truth dataset."
+      );
+    } finally {
+      setOfflineSubmitting(false);
     }
   };
 
@@ -327,6 +390,11 @@ export default function BenchmarkRun() {
                       <Form.Text className="text-muted">
                         Only evidence in PROCESSED status can be benchmarked.
                       </Form.Text>
+                    ) : evidenceId && !artefactsLoading && !artefacts.length ? (
+                      <Form.Text className="text-muted">
+                        No parsed artefacts for this evidence — run the pipeline on a
+                        valid forensic image, or use Offline Benchmark below.
+                      </Form.Text>
                     ) : null}
                   </Form.Group>
                 </Col>
@@ -379,7 +447,12 @@ export default function BenchmarkRun() {
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={submitting || !canCreate}
+                  disabled={
+                    submitting ||
+                    !canCreate ||
+                    artefactsLoading ||
+                    (evidenceId && !artefacts.length)
+                  }
                 >
                   {submitting ? (
                     <Spinner animation="border" size="sm" className="me-2" />
@@ -388,12 +461,32 @@ export default function BenchmarkRun() {
                   )}
                   Run Benchmark
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline-primary"
+                  className="ms-2"
+                  disabled={offlineSubmitting || !canCreate}
+                  onClick={handleOfflineSubmit}
+                >
+                  {offlineSubmitting ? (
+                    <Spinner animation="border" size="sm" className="me-2" />
+                  ) : (
+                    <FontAwesomeIcon icon={faPlay} className="me-2" />
+                  )}
+                  Run without evidence image
+                </Button>
                 {!canCreate ? (
                   <span className="small text-muted ms-3">
                     Your role cannot create evaluation runs.
                   </span>
                 ) : null}
               </div>
+              <Form.Text className="d-block mt-2 text-muted">
+                Use “without evidence image” when DFRWS/CFReDS disk or memory
+                files are not on this machine. It recovers artefacts from the
+                local ground-truth JSON with a documented false-positive /
+                false-negative mix.
+              </Form.Text>
             </Form>
           )}
         </Card.Body>

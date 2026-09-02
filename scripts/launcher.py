@@ -34,7 +34,7 @@ LAUNCHER_META = STATE_DIR / "launcher.json"
 BACKEND_HOST = "127.0.0.1"
 BACKEND_PORT = 8000
 FRONTEND_PORT = 3000
-HEALTH_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/api/v1/health"
+HEALTH_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/api/v1/health/ready"
 FRONTEND_URL = f"http://{BACKEND_HOST}:{FRONTEND_PORT}"
 OLLAMA_URL = "http://127.0.0.1:11434/api/tags"
 
@@ -246,6 +246,10 @@ def start_backend(python: Path) -> int:
         "--port",
         str(BACKEND_PORT),
         "--reload",
+        "--reload-dir",
+        str(REPO_ROOT / "src" / "dfat"),
+        "--reload-delay",
+        "1",
     ]
     _print(f"[start] Backend → http://{BACKEND_HOST}:{BACKEND_PORT}")
     _print(f"        Log: {BACKEND_LOG.relative_to(REPO_ROOT)}")
@@ -296,9 +300,11 @@ def maybe_seed(python: Path) -> None:
     if seed_marker.is_file():
         _print("[skip] Dev seed already completed")
         return
-    seed_script = SCRIPTS / "seed_dev_data.py"
+    seed_script = SCRIPTS / "seed_demo_data.py"
     if not seed_script.is_file():
-        _print("[skip] seed_dev_data.py not found")
+        seed_script = SCRIPTS / "seed_dev_data.py"
+    if not seed_script.is_file():
+        _print("[skip] seed_demo_data.py not found")
         return
     _print("[setup] Seeding development users/cases via API")
     code = run_python_script(seed_script, python=python)
@@ -309,7 +315,7 @@ def maybe_seed(python: Path) -> None:
         _print(
             "[warn] Seed script failed — you can still log in with the "
             "first-run admin credentials printed by the backend, or re-run "
-            "scripts/seed_dev_data.py later."
+            "scripts/seed_demo_data.py later."
         )
 
 

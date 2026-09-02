@@ -498,7 +498,5 @@ make deploy-up
 
 ### Contact and Escalation
 
-For issues beyond this guide:
-
-- **Developer**: Muhammad Aaqif Afzaal (100176885@canterbury.ac.uk)
-- **Supervisor**: Dr. Mandy Qi, Canterbury Christ Church University
+For issues beyond this guide, use the in-app Help page and the project
+repository issue tracker.

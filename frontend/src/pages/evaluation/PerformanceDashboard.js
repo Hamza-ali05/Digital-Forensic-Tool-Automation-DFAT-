@@ -224,12 +224,18 @@ export default function PerformanceDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [benchmarks, jobList] = await Promise.all([
+      const [benchmarks, jobList, storedBaseline] = await Promise.all([
         evaluationService.getResults(),
         pipelineService.listJobs().catch(() => []),
+        evaluationService.getBaseline().catch(() => null),
       ]);
       setResults(Array.isArray(benchmarks) ? benchmarks : []);
       setJobs(Array.isArray(jobList) ? jobList : []);
+      const seconds = Number(storedBaseline?.baseline_ttt_seconds);
+      if (Number.isFinite(seconds) && seconds > 0) {
+        setBaseline(seconds);
+        setBaselineInput(String(seconds));
+      }
     } catch (err) {
       setError(err);
       setResults([]);
@@ -363,7 +369,7 @@ export default function PerformanceDashboard() {
   const stageRows = useMemo(() => collectStageStats(stageJobs), [stageJobs]);
   const parserRows = useMemo(() => collectParserRows(jobs), [jobs]);
 
-  const saveBaseline = (event) => {
+  const saveBaseline = async (event) => {
     event.preventDefault();
     const num = Number(baselineInput);
     if (!Number.isFinite(num) || num <= 0) {
@@ -372,8 +378,15 @@ export default function PerformanceDashboard() {
     }
     try {
       localStorage.setItem(BASELINE_KEY, String(num));
-    } catch {
-      notifyError("Save failed", "Could not write baseline to local storage.");
+      await evaluationService.saveBaseline({
+        baseline_ttt_seconds: num,
+        label: "manual Autopsy/Volatility (operator-supplied)",
+      });
+    } catch (err) {
+      notifyError(
+        "Save failed",
+        err?.message || "Could not persist the manual baseline."
+      );
       return;
     }
     setBaseline(num);

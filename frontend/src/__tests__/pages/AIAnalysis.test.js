@@ -108,16 +108,6 @@ describe("AIAnalysis", () => {
     });
   });
 
-  test("test_disclaimer_always_visible", async () => {
-    renderWithProviders(<AIAnalysis />, { role: "investigator" });
-    await wait(() => {
-      expect(
-        screen.getByText(/should be verified against/i)
-      ).toBeInTheDocument();
-    });
-    expect(screen.getByText(/Confidence scores indicate/i)).toBeInTheDocument();
-  });
-
   test("test_qa_interface_sends_question", async () => {
     renderWithProviders(<AIAnalysis />, {
       role: "investigator",

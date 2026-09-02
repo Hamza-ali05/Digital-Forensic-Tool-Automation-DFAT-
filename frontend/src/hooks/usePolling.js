@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import usePageVisibility from "hooks/usePageVisibility";
+
 /**
  * Poll ``fetchFunction`` on an interval while enabled.
+ * Skips overlapping ticks and pauses when the browser tab is hidden.
  *
  * @param {Function} fetchFunction Async fetcher (no args).
  * @param {number} intervalMs Poll interval in milliseconds.
@@ -12,14 +15,18 @@ export default function usePolling(fetchFunction, intervalMs, enabled = true) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isPolling, setIsPolling] = useState(Boolean(enabled));
+  const pageVisible = usePageVisibility();
 
   const fnRef = useRef(fetchFunction);
   fnRef.current = fetchFunction;
   const intervalRef = useRef(null);
   const mountedRef = useRef(true);
+  const inFlightRef = useRef(false);
 
   const tick = useCallback(async (isInitial) => {
-    if (isInitial) {
+    if (inFlightRef.current) return undefined;
+    inFlightRef.current = true;
+    if (isInitial && mountedRef.current) {
       setLoading(true);
     }
     try {
@@ -44,6 +51,8 @@ export default function usePolling(fetchFunction, intervalMs, enabled = true) {
         setLoading(false);
       }
       return undefined;
+    } finally {
+      inFlightRef.current = false;
     }
   }, []);
 
@@ -74,7 +83,7 @@ export default function usePolling(fetchFunction, intervalMs, enabled = true) {
   useEffect(() => {
     clearTimer();
 
-    if (!enabled || !isPolling) {
+    if (!enabled || !isPolling || !pageVisible) {
       return undefined;
     }
 
@@ -95,13 +104,13 @@ export default function usePolling(fetchFunction, intervalMs, enabled = true) {
       cancelled = true;
       clearTimer();
     };
-  }, [enabled, isPolling, intervalMs, tick, clearTimer]);
+  }, [enabled, isPolling, intervalMs, pageVisible, tick, clearTimer]);
 
   return {
     data,
     loading,
     error,
-    isPolling: Boolean(enabled && isPolling),
+    isPolling: Boolean(enabled && isPolling && pageVisible),
     stopPolling,
     startPolling,
   };

@@ -2,6 +2,16 @@ import React from "react";
 
 import EmptyState from "components/common/EmptyState";
 
+function timelineEntryKey(entry, index) {
+  const stable =
+    entry?.id ??
+    entry?.record_id ??
+    entry?.entry_number ??
+    entry?.timestamp ??
+    "entry";
+  return `${stable}-${index}`;
+}
+
 /**
  * Vertical timeline for status history and custody chain entries.
  *
@@ -36,7 +46,7 @@ export default function StatusTimeline({
           const isLast = index === items.length - 1;
           return (
             <li
-              key={entry.id || entry.record_id || entry.entry_number || index}
+              key={timelineEntryKey(entry, index)}
               className="d-flex position-relative pb-4"
             >
               <div

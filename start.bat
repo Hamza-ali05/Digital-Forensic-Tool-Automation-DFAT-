@@ -254,9 +254,9 @@ echo.
 :: ---------------------------------------------------------------------------
 echo [%TIME%] Starting backend...
 if exist "%ROOT%\venv\Scripts\activate.bat" (
-    start "DFAT Backend" cmd /k "cd /d ""%ROOT%"" && call ""%ROOT%\venv\Scripts\activate.bat"" && set PYTHONPATH=%ROOT%\src&& set DFAT_ENV=development&& set PYTHONDONTWRITEBYTECODE=1&& python -m uvicorn dfat.app:create_app --factory --host 0.0.0.0 --port 8000 --reload"
+    start "DFAT Backend" cmd /k "cd /d ""%ROOT%"" && call ""%ROOT%\venv\Scripts\activate.bat"" && set PYTHONPATH=%ROOT%\src&& set DFAT_ENV=development&& set PYTHONDONTWRITEBYTECODE=1&& python -m uvicorn dfat.app:create_app --factory --host 0.0.0.0 --port 8000 --reload --reload-dir ""%ROOT%\src\dfat"" --reload-delay 1"
 ) else (
-    start "DFAT Backend" cmd /k "cd /d ""%ROOT%"" && set PYTHONPATH=%ROOT%\src&& set DFAT_ENV=development&& set PYTHONDONTWRITEBYTECODE=1&& %PY_CMD% -m uvicorn dfat.app:create_app --factory --host 0.0.0.0 --port 8000 --reload"
+    start "DFAT Backend" cmd /k "cd /d ""%ROOT%"" && set PYTHONPATH=%ROOT%\src&& set DFAT_ENV=development&& set PYTHONDONTWRITEBYTECODE=1&& %PY_CMD% -m uvicorn dfat.app:create_app --factory --host 0.0.0.0 --port 8000 --reload --reload-dir ""%ROOT%\src\dfat"" --reload-delay 1"
 )
 echo Backend starting on http://localhost:8000
 

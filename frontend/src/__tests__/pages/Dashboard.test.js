@@ -77,11 +77,6 @@ describe("Dashboard", () => {
       ]);
     });
     reportsService.getTotal.mockResolvedValue(1);
-    reportsService.getJson.mockResolvedValue({
-      summary_statistics: {
-        by_suspicion_level: { high: 2, medium: 1, low: 3 },
-      },
-    });
     reportsService.getAuditTrail.mockResolvedValue({ entries: [] });
     healthService.ready.mockResolvedValue({
       status: "ready",
@@ -103,7 +98,37 @@ describe("Dashboard", () => {
     await wait(() => {
       expect(screen.getByTestId("doughnut-chart")).toBeInTheDocument();
     });
+    expect(screen.getByText(/Pipeline Jobs by Status/i)).toBeInTheDocument();
     expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
+    expect(screen.queryByText(/Artefacts by Suspicion Level/i)).not.toBeInTheDocument();
+  });
+
+  test("does not update state after unmount", async () => {
+    const consoleError = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    let resolveCases;
+    casesService.list.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCases = resolve;
+      })
+    );
+
+    const { unmount } = renderWithProviders(<Dashboard />, { role: "admin" });
+    unmount();
+    resolveCases({ total: 2, cases: [] });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const leaked = consoleError.mock.calls.some((args) =>
+      args.some(
+        (msg) =>
+          typeof msg === "string" &&
+          msg.includes("Can't perform a React state update on an unmounted component")
+      )
+    );
+    expect(leaked).toBe(false);
+    consoleError.mockRestore();
   });
 
   test("test_quick_actions_respect_permissions", async () => {

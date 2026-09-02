@@ -18,7 +18,6 @@ export const API_ENDPOINTS = {
     DEACTIVATE: (id) => `/users/${id}/deactivate`,
   },
   HEALTH: {
-    CHECK: "/health",
     READY: "/health/ready",
     DETAILED: "/health/detailed",
   },
@@ -49,6 +48,9 @@ export const API_ENDPOINTS = {
     STATUS: (id) => `/evidence/${id}/status`,
     QUARANTINE: (id) => `/evidence/${id}/quarantine`,
     STATS: "/evidence/statistics",
+  },
+  INTEGRITY: {
+    BATCH_VERIFY: "/integrity/batch-verify",
   },
   PIPELINE: {
     RUN: "/pipeline/run",
@@ -87,6 +89,10 @@ export const API_ENDPOINTS = {
     BENCHMARK_RESULT: (id) => `/evaluation/benchmark/results/${id}`,
     BENCHMARK_PERFORMANCE: "/evaluation/benchmark/performance",
     BENCHMARK_DATASETS: "/evaluation/benchmark/datasets",
+    BENCHMARK_OFFLINE: "/evaluation/benchmark/offline",
+    BENCHMARK_BASELINE: "/evaluation/benchmark/baseline",
+    LLM_SUMMARY: "/evaluation/llm-summary",
+    LLM_SUMMARY_RESULTS: "/evaluation/llm-summary/results",
     USABILITY_RESPOND: "/evaluation/usability/respond",
     USABILITY_QUESTIONNAIRE: "/evaluation/usability/questionnaire",
     USABILITY_RESULTS: "/evaluation/usability/results",

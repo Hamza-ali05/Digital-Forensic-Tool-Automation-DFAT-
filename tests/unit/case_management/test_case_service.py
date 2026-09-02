@@ -11,7 +11,6 @@ from dfat.case_management.enums import CaseStatus, CustodyAction
 from dfat.case_management.exceptions import (
     InvalidCaseTransitionError,
     InvestigatorAlreadyAssignedError,
-    NoLeadInvestigatorError,
 )
 from dfat.core.enums import EvidenceType, HashAlgorithm
 from dfat.core.models.case import Case, CaseInvestigator
@@ -63,12 +62,13 @@ def _service(
 
 @pytest.mark.asyncio
 async def test_create_case() -> None:
-    """create_case persists a CREATED case and audits."""
+    """create_case persists a CREATED case, assigns creator as lead, and audits."""
     # Arrange
-    created = _case()
+    with_lead = _case(lead="u1")
     case_repo = AsyncMock()
     case_repo.save = AsyncMock(return_value="c1")
-    case_repo.get = AsyncMock(return_value=created)
+    case_repo.get = AsyncMock(return_value=with_lead)
+    case_repo.add_investigator = AsyncMock()
     audit = AsyncMock()
     service = _service(case_repo=case_repo, audit=audit)
 
@@ -77,21 +77,41 @@ async def test_create_case() -> None:
 
     # Assert
     assert result.status is CaseStatus.CREATED
+    assert result.lead_investigator_id == "u1"
     case_repo.save.assert_awaited()
+    case_repo.add_investigator.assert_awaited()
     audit.log_action.assert_awaited()
 
 
 @pytest.mark.asyncio
-async def test_open_without_lead_raises() -> None:
-    """open_case raises NoLeadInvestigatorError when no lead is set."""
+async def test_open_without_lead_assigns_actor() -> None:
+    """open_case auto-assigns the acting user as lead when none exists."""
     # Arrange
+    orphan = _case(lead=None)
+    with_lead = _case(lead="u1")
+    opened = _case(status=CaseStatus.OPEN, lead="u1")
     case_repo = AsyncMock()
-    case_repo.get = AsyncMock(return_value=_case(lead=None))
+    # open → assign (multiple gets) → transition get
+    case_repo.get = AsyncMock(
+        side_effect=[
+            orphan,  # open_case validate
+            orphan,  # assign_investigator require
+            with_lead,  # assign lead persist check
+            with_lead,  # assign return
+            with_lead,  # _transition require
+        ]
+    )
+    case_repo.add_investigator = AsyncMock()
+    case_repo.update_status = AsyncMock(return_value=opened)
     service = _service(case_repo=case_repo)
 
-    # Act / Assert
-    with pytest.raises(NoLeadInvestigatorError):
-        await service.open_case("c1", "u1")
+    # Act
+    result = await service.open_case("c1", "u1")
+
+    # Assert
+    assert result.status is CaseStatus.OPEN
+    case_repo.add_investigator.assert_awaited()
+    case_repo.update_status.assert_awaited()
 
 
 @pytest.mark.asyncio

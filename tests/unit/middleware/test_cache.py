@@ -51,19 +51,19 @@ def _client() -> TestClient:
     return client
 
 
-def test_health_second_request_is_cache_hit() -> None:
-    """Cached GET /health returns X-Cache HIT and Cache-Control."""
+def test_statistics_second_request_is_cache_hit() -> None:
+    """Cached GET /evidence/statistics returns X-Cache HIT and Cache-Control."""
     client = _client()
 
-    first = client.get("/api/v1/health")
-    second = client.get("/api/v1/health")
+    first = client.get("/api/v1/evidence/statistics")
+    second = client.get("/api/v1/evidence/statistics")
 
     assert first.status_code == 200
     assert first.headers["x-cache"] == "MISS"
     assert second.headers["x-cache"] == "HIT"
     assert first.json() == second.json()
-    assert client.hits["health"] == 1  # type: ignore[attr-defined]
-    assert "max-age=30" in second.headers["cache-control"]
+    assert client.hits["stats"] == 1  # type: ignore[attr-defined]
+    assert "max-age=60" in second.headers["cache-control"]
 
 
 def test_cache_is_role_specific() -> None:

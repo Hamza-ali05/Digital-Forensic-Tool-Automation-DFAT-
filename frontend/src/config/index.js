@@ -12,7 +12,7 @@ const config = {
     10
   ),
   pollingInterval: parseInt(
-    process.env.REACT_APP_POLLING_INTERVAL_MS || "5000",
+    process.env.REACT_APP_POLLING_INTERVAL_MS || "30000",
     10
   ),
   maxFileSizeMB: parseInt(process.env.REACT_APP_MAX_FILE_SIZE_MB || "500", 10),

@@ -85,11 +85,11 @@ def test_lifespan_stores_startup_report_on_app_state() -> None:
         patch("dfat.app.StartupReportPrinter.save_report"),
     ):
         with TestClient(app) as client:
-            response = client.get("/api/v1/health")
+            response = client.get("/api/v1/health/ready")
             assert response.status_code == 200
             body = response.json()
             assert body["system_readiness"] == "ready"
-            assert "configuration" in body["available_capabilities"]
+            assert body["checks"]["database"] is True
 
     mock_shutdown.shutdown.assert_awaited_once()
 

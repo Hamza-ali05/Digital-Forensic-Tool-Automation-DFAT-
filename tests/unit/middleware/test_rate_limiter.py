@@ -60,3 +60,49 @@ def test_rate_limit_recovers_after_window() -> None:
 
     # Assert
     assert recovered is True
+
+
+def test_evidence_verify_is_rate_limit_exempt() -> None:
+    """Integrity verification POSTs bypass rate limiting entirely."""
+    app = FastAPI()
+    app.add_middleware(RateLimiterMiddleware)
+
+    @app.post("/api/v1/evidence/{evidence_id}/verify-integrity")
+    def verify(evidence_id: str) -> dict[str, str]:
+        return {"ok": evidence_id}
+
+    client = TestClient(app)
+    statuses = [
+        client.post("/api/v1/evidence/ev-1/verify-integrity").status_code
+        for _ in range(20)
+    ]
+
+    assert all(code == 200 for code in statuses)
+
+
+def test_evidence_verify_uses_general_rate_not_upload_bucket() -> None:
+    """Integrity verification POSTs must not share the strict register bucket."""
+    app = FastAPI()
+    app.add_middleware(RateLimiterMiddleware)
+
+    @app.post("/api/v1/evidence/register")
+    def register() -> dict[str, str]:
+        return {"ok": "registered"}
+
+    @app.post("/api/v1/evidence/{evidence_id}/verify-integrity")
+    def verify(evidence_id: str) -> dict[str, str]:
+        return {"ok": evidence_id}
+
+    client = TestClient(app)
+
+    register_statuses = [
+        client.post("/api/v1/evidence/register", json={"file_path": "x"}).status_code
+        for _ in range(7)
+    ]
+    verify_statuses = [
+        client.post("/api/v1/evidence/ev-1/verify-integrity").status_code
+        for _ in range(12)
+    ]
+
+    assert 429 in register_statuses
+    assert all(code == 200 for code in verify_statuses)

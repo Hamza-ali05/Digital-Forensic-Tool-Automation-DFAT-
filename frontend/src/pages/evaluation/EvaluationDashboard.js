@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChartLine,
   faClipboardList,
+  faComments,
   faHistory,
   faTachometerAlt,
 } from "@fortawesome/free-solid-svg-icons";
@@ -101,9 +102,33 @@ export default function EvaluationDashboard() {
               <Button
                 as={Link}
                 to={Routes.EvaluationUsability.path}
-                variant="outline-secondary"
+                variant="outline-primary"
               >
                 Open usability
+              </Button>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={12} md={6} lg={4}>
+          <Card border="light" className="shadow-sm h-100">
+            <Card.Body>
+              <h5>
+                <FontAwesomeIcon
+                  icon={faComments}
+                  className="me-2 text-primary"
+                />
+                LLM summaries
+              </h5>
+              <p className="small text-muted">
+                Automated usefulness and accuracy proxies for investigative
+                narratives against artefact identifiers.
+              </p>
+              <Button
+                as={Link}
+                to={Routes.EvaluationLlmSummary.path}
+                variant="outline-primary"
+              >
+                Score summaries
               </Button>
             </Card.Body>
           </Card>

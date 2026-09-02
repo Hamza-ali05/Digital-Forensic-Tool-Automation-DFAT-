@@ -77,13 +77,15 @@ async def test_knowledge_initializer_completes_with_mocks() -> None:
 @pytest.mark.asyncio
 async def test_knowledge_initializer_degrades_without_chromadb() -> None:
     vs = MagicMock()
+    vs.count = MagicMock(return_value=0)
+    vs.add_documents = AsyncMock(side_effect=ImportError("chromadb missing"))
     ee = MagicMock(_model_name="test")
     indexer = MagicMock()
     ioc_kb = MagicMock()
     ioc_kb.get_statistics.return_value = {"total_count": 0}
     graph = MagicMock(_graph=MagicMock(nodes=[]))
 
-    with patch.dict("sys.modules", {"chromadb": None}):
+    with patch("dfat.knowledge.vector_store.chromadb", None):
         result = await KnowledgeInitializer(vs, ee, indexer, ioc_kb, graph, _settings()).initialize()
 
     assert result.status == InitStatus.DEGRADED
@@ -169,7 +171,8 @@ async def test_threat_intel_loads_rules(tmp_path: Path) -> None:
     yara_engine.load_rules.return_value = 3
     sigma_engine = MagicMock()
     sigma_engine.load_rules.return_value = 5
-    mitre = MagicMock(_techniques={"T1055": {}, "T1547": {}})
+    mitre = MagicMock()
+    mitre.TECHNIQUE_DB = {"T1055": {}, "T1547": {}}
 
     result = await ThreatIntelInitializer(
         MagicMock(), yara_engine, sigma_engine, mitre, _settings()
@@ -179,6 +182,7 @@ async def test_threat_intel_loads_rules(tmp_path: Path) -> None:
     assert result.status == InitStatus.COMPLETED
     assert result.details["yara_rules_loaded"] == 3
     assert result.details["sigma_rules_loaded"] == 5
+    assert result.details["mitre_techniques_mapped"] == 2
 
 
 @pytest.mark.asyncio
@@ -187,7 +191,8 @@ async def test_threat_intel_degrades_without_rules() -> None:
     yara_engine.load_rules.return_value = 0
     sigma_engine = MagicMock()
     sigma_engine.load_rules.return_value = 0
-    mitre = MagicMock(_techniques={})
+    mitre = MagicMock()
+    mitre.TECHNIQUE_DB = {}
 
     result = await ThreatIntelInitializer(
         MagicMock(), yara_engine, sigma_engine, mitre, _settings()
@@ -195,6 +200,8 @@ async def test_threat_intel_degrades_without_rules() -> None:
 
     assert result.status == InitStatus.DEGRADED
     assert "yara_rules" in result.degraded_capabilities
+    assert "sigma_rules" in result.degraded_capabilities
+    assert "mitre_mappings" in result.degraded_capabilities
     assert "sigma_rules" in result.degraded_capabilities
 
 

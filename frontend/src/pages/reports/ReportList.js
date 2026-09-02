@@ -1,85 +1,52 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Alert,
   Badge,
   Button,
   Card,
+  Col,
   Container,
+  Pagination,
+  Row,
   Spinner,
 } from "@themesberg/react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheckCircle,
+  faClock,
   faCode,
+  faDatabase,
   faEye,
   faFileAlt,
   faFilePdf,
+  faFolderOpen,
   faShieldAlt,
+  faStopwatch,
   faTimesCircle,
 } from "@fortawesome/free-solid-svg-icons";
 
 import PageHeader from "components/common/PageHeader";
-import DataTable from "components/common/DataTable";
 import ApiErrorDisplay from "components/common/ApiErrorDisplay";
+import EmptyState from "components/common/EmptyState";
+import SkeletonLoader from "components/common/SkeletonLoader";
 import { formatDate, formatDuration } from "utils/formatters";
-import {
-  evidenceOptionId,
-  loadEvidenceOptions,
-  normaliseEvidenceList,
-} from "utils/artefactLoader";
 import useNotification from "hooks/useNotification";
-import casesService from "services/cases.service";
-import pipelineService from "services/pipeline.service";
+import { fetchReportsCached } from "services/referenceData";
 import reportsService from "services/reports.service";
 import { Routes } from "routes";
+
+const PAGE_SIZE = 6;
 
 function shortId(id) {
   if (!id) return "—";
   return String(id).slice(0, 8);
 }
 
-function jobDurationSeconds(job, meta) {
-  if (typeof meta?.pipeline_duration_seconds === "number") {
-    return meta.pipeline_duration_seconds;
-  }
-  if (typeof job?.total_duration_seconds === "number") {
-    return job.total_duration_seconds;
-  }
-  return 0;
-}
-
-function resolveAiModel(job, jsonDoc) {
-  const aiMeta = jsonDoc?.ai_metadata || {};
-  if (aiMeta.model_used && aiMeta.model_used !== "none") {
-    return aiMeta.model_used;
-  }
-  if (jsonDoc?.llm_model_used) return jsonDoc.llm_model_used;
-  if (job?.use_fallback_analyzer) return "Rule-based fallback";
-  return aiMeta.model || "LLaMA-3";
-}
-
-function uniqueReportJobs(jobs) {
-  const byId = new Map();
-  (jobs || []).forEach((job) => {
-    const reportId = job?.report_id;
-    if (!reportId) return;
-    const existing = byId.get(reportId);
-    if (!existing) {
-      byId.set(reportId, job);
-      return;
-    }
-    const existingTime = new Date(
-      existing.completed_at || existing.created_at || 0
-    ).getTime();
-    const nextTime = new Date(job.completed_at || job.created_at || 0).getTime();
-    if (nextTime >= existingTime) byId.set(reportId, job);
-  });
-  return Array.from(byId.values()).sort((a, b) => {
-    const ta = new Date(a.completed_at || a.created_at || 0).getTime();
-    const tb = new Date(b.completed_at || b.created_at || 0).getTime();
-    return tb - ta;
-  });
+function resolveAiModel(report) {
+  const model = report?.llm_model_used;
+  if (model && model !== "none") return model;
+  return model || "LLaMA-3";
 }
 
 function VerifyFlag({ ok, label }) {
@@ -94,11 +61,193 @@ function VerifyFlag({ ok, label }) {
   );
 }
 
+function ReportCard({ row, busy, onExport, onVerify }) {
+  const detailPath = Routes.ReportDetail.path.replace(":id", row.report_id);
+  const isBusy = busy?.id === row.report_id;
+  const spinning = (kind) => isBusy && busy.kind === kind;
+
+  return (
+    <Card border="light" className="shadow-sm h-100">
+      <Card.Body className="d-flex flex-column">
+        <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <Link
+            to={detailPath}
+            className="fw-bold text-decoration-none"
+            title={row.report_id}
+          >
+            {shortId(row.report_id)}
+          </Link>
+          {row.use_fallback ? (
+            <Badge bg="warning" text="dark">
+              Fallback
+            </Badge>
+          ) : null}
+        </div>
+
+        <h5 className="h6 mb-3">
+          <Link
+            to={detailPath}
+            className="text-dark text-decoration-none"
+            title={row.case_name}
+          >
+            {row.case_name || "—"}
+          </Link>
+        </h5>
+
+        <ul className="list-unstyled small text-muted mb-3 flex-grow-1">
+          <li className="d-flex align-items-start mb-2">
+            <FontAwesomeIcon icon={faFolderOpen} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Case
+              </span>
+              <br />
+              {row.case_id ? (
+                <Link
+                  to={Routes.CaseDetail.path.replace(":id", row.case_id)}
+                  className="text-dark"
+                  title={row.case_name}
+                >
+                  {row.case_name || shortId(row.case_id)}
+                </Link>
+              ) : (
+                <span className="text-dark">{row.case_name || "—"}</span>
+              )}
+            </span>
+          </li>
+          <li className="d-flex align-items-start mb-2">
+            <FontAwesomeIcon icon={faDatabase} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Evidence
+              </span>
+              <br />
+              {row.evidence_id ? (
+                <Link
+                  to={Routes.EvidenceDetail.path.replace(":id", row.evidence_id)}
+                  className="text-dark"
+                  title={row.evidence_name}
+                >
+                  {row.evidence_name}
+                </Link>
+              ) : (
+                <span className="text-dark">—</span>
+              )}
+            </span>
+          </li>
+          <li className="d-flex align-items-center mb-2">
+            <FontAwesomeIcon icon={faClock} className="me-2" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Generated
+              </span>
+              <br />
+              <span className="text-dark">{formatDate(row.generated_at)}</span>
+            </span>
+          </li>
+          <li className="d-flex align-items-center mb-2">
+            <FontAwesomeIcon icon={faStopwatch} className="me-2" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Duration
+              </span>
+              <br />
+              <span className="text-dark">
+                {formatDuration(row.duration_seconds)}
+              </span>
+            </span>
+          </li>
+          <li className="d-flex align-items-start">
+            <FontAwesomeIcon icon={faFileAlt} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                AI Model
+              </span>
+              <br />
+              <span className="text-dark">{row.ai_model}</span>
+            </span>
+          </li>
+        </ul>
+
+        <div className="d-flex flex-wrap gap-2 mt-auto pt-2 border-top border-light">
+          <Button
+            as={Link}
+            to={detailPath}
+            variant="outline-primary"
+            size="sm"
+            title="View report"
+          >
+            <FontAwesomeIcon icon={faEye} className="me-1" />
+            View
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            disabled={isBusy}
+            onClick={() => onExport(row, "pdf")}
+            title="Export PDF"
+          >
+            {spinning("pdf") ? (
+              <Spinner animation="border" size="sm" className="me-1" />
+            ) : (
+              <FontAwesomeIcon icon={faFilePdf} className="me-1" />
+            )}
+            PDF
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            disabled={isBusy}
+            onClick={() => onExport(row, "html")}
+            title="Export HTML"
+          >
+            {spinning("html") ? (
+              <Spinner animation="border" size="sm" className="me-1" />
+            ) : (
+              <FontAwesomeIcon icon={faFileAlt} className="me-1" />
+            )}
+            HTML
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            disabled={isBusy}
+            onClick={() => onExport(row, "json")}
+            title="Download JSON"
+          >
+            {spinning("json") ? (
+              <Spinner animation="border" size="sm" className="me-1" />
+            ) : (
+              <FontAwesomeIcon icon={faCode} className="me-1" />
+            )}
+            JSON
+          </Button>
+          <Button
+            variant="outline-success"
+            size="sm"
+            disabled={isBusy}
+            onClick={() => onVerify(row)}
+            title="Verify integrity"
+          >
+            {spinning("verify") ? (
+              <Spinner animation="border" size="sm" className="me-1" />
+            ) : (
+              <FontAwesomeIcon icon={faShieldAlt} className="me-1" />
+            )}
+            Verify
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
+
 /**
  * Forensic reports list with export and integrity actions.
  */
 export default function ReportList() {
   const { success, error: notifyError, info } = useNotification();
+  const mountedRef = useRef(true);
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,74 +255,40 @@ export default function ReportList() {
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null);
-  const pageSize = 20;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const loadReports = useCallback(async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     setError(null);
     try {
-      const [jobs, inventory, caseResult] = await Promise.all([
-        pipelineService.listJobs(),
-        evidenceServiceSafe(),
-        casesService.list().catch(() => ({ cases: [] })),
-      ]);
-
-      const evidenceItems = Array.isArray(inventory)
-        ? inventory
-        : normaliseEvidenceList(inventory);
-      const evidenceMap = {};
-      evidenceItems.forEach((item) => {
-        const id = evidenceOptionId(item);
-        if (id) evidenceMap[id] = item;
-      });
-
-      const caseItems = Array.isArray(caseResult?.cases)
-        ? caseResult.cases
-        : Array.isArray(caseResult)
-          ? caseResult
-          : [];
-      const caseMap = {};
-      caseItems.forEach((item) => {
-        if (item?.case_id) caseMap[item.case_id] = item;
-      });
-
-      const uniqueJobs = uniqueReportJobs(jobs);
-      const enriched = await Promise.all(
-        uniqueJobs.map(async (job) => {
-          const reportId = job.report_id;
-          const [meta, jsonDoc] = await Promise.all([
-            reportsService.getById(reportId).catch(() => null),
-            reportsService.getJson(reportId).catch(() => null),
-          ]);
-          const evidence = evidenceMap[job.evidence_id];
-          const caseRow = caseMap[job.case_id];
-          return {
-            id: reportId,
-            report_id: reportId,
-            job_id: job.job_id || job.id,
-            case_id: job.case_id,
-            case_name:
-              meta?.case_name || caseRow?.case_name || shortId(job.case_id),
-            evidence_id: job.evidence_id,
-            evidence_name:
-              evidence?.file_name ||
-              evidence?.filename ||
-              evidence?.name ||
-              shortId(job.evidence_id),
-            generated_at:
-              meta?.generated_at || job.completed_at || job.created_at,
-            duration_seconds: jobDurationSeconds(job, meta),
-            ai_model: resolveAiModel(job, jsonDoc),
-            use_fallback: Boolean(job.use_fallback_analyzer),
-          };
-        })
-      );
+      const reports = await fetchReportsCached();
+      const enriched = (reports || []).map((report) => ({
+        id: report.report_id,
+        report_id: report.report_id,
+        case_id: report.case_id,
+        case_name: report.case_name || shortId(report.case_id),
+        evidence_id: report.evidence_id,
+        evidence_name: report.evidence_name || shortId(report.evidence_id),
+        generated_at: report.generated_at,
+        duration_seconds: report.pipeline_duration_seconds || 0,
+        ai_model: resolveAiModel(report),
+        use_fallback: Boolean(report.use_fallback_analyzer),
+      }));
+      if (!mountedRef.current) return;
       setRows(enriched);
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(err);
       setRows([]);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -181,10 +296,13 @@ export default function ReportList() {
     loadReports().catch(() => {});
   }, [loadReports]);
 
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const pagedRows = useMemo(() => {
-    const start = (Math.max(1, page) - 1) * pageSize;
-    return rows.slice(start, start + pageSize);
+    const start = (Math.max(1, page) - 1) * PAGE_SIZE;
+    return rows.slice(start, start + PAGE_SIZE);
   }, [rows, page]);
+
+  const showPagination = !loading && rows.length > PAGE_SIZE;
 
   const runExport = async (row, kind) => {
     const id = row.report_id;
@@ -193,14 +311,16 @@ export default function ReportList() {
       if (kind === "pdf") await reportsService.exportPdf(id);
       else if (kind === "html") await reportsService.exportHtml(id);
       else await reportsService.exportJson(id);
+      if (!mountedRef.current) return;
       info("Download started", `Report ${shortId(id)} ${kind.toUpperCase()} export.`);
     } catch (err) {
+      if (!mountedRef.current) return;
       notifyError(
         "Export failed",
         err?.message || `Could not export ${kind.toUpperCase()}.`
       );
     } finally {
-      setBusy(null);
+      if (mountedRef.current) setBusy(null);
     }
   };
 
@@ -210,6 +330,7 @@ export default function ReportList() {
     setVerifyResult(null);
     try {
       const result = await reportsService.verify(id);
+      if (!mountedRef.current) return;
       setVerifyResult({ reportId: id, ...result });
       if (result.is_valid) {
         success(
@@ -223,151 +344,14 @@ export default function ReportList() {
         );
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       notifyError(
         "Verify failed",
         err?.message || "Could not verify report integrity."
       );
     } finally {
-      setBusy(null);
+      if (mountedRef.current) setBusy(null);
     }
-  };
-
-  const columns = useMemo(
-    () => [
-      {
-        key: "report_id",
-        header: "Report ID",
-        sortable: true,
-        render: (row) => (
-          <Link
-            to={Routes.ReportDetail.path.replace(":id", row.report_id)}
-            className="fw-bold"
-          >
-            {shortId(row.report_id)}
-          </Link>
-        ),
-      },
-      {
-        key: "case",
-        header: "Case",
-        render: (row) =>
-          row.case_id ? (
-            <Link to={Routes.CaseDetail.path.replace(":id", row.case_id)}>
-              {row.case_name}
-            </Link>
-          ) : (
-            row.case_name || "—"
-          ),
-      },
-      {
-        key: "evidence",
-        header: "Evidence",
-        render: (row) =>
-          row.evidence_id ? (
-            <Link to={Routes.EvidenceDetail.path.replace(":id", row.evidence_id)}>
-              {row.evidence_name}
-            </Link>
-          ) : (
-            "—"
-          ),
-      },
-      {
-        key: "generated_at",
-        header: "Generated At",
-        sortable: true,
-        render: (row) => formatDate(row.generated_at),
-      },
-      {
-        key: "duration",
-        header: "Duration",
-        render: (row) => formatDuration(row.duration_seconds),
-      },
-      {
-        key: "ai_model",
-        header: "AI Model",
-        render: (row) => (
-          <span>
-            {row.ai_model}
-            {row.use_fallback ? (
-              <Badge bg="warning" text="dark" className="ms-2">
-                Fallback
-              </Badge>
-            ) : null}
-          </span>
-        ),
-      },
-    ],
-    []
-  );
-
-  const renderActions = (row) => {
-    const isBusy = busy?.id === row.report_id;
-    const spinning = (kind) => isBusy && busy.kind === kind;
-    return (
-      <div className="d-flex justify-content-end flex-wrap gap-1">
-        <Button
-          as={Link}
-          to={Routes.ReportDetail.path.replace(":id", row.report_id)}
-          variant="outline-primary"
-          size="sm"
-        >
-          <FontAwesomeIcon icon={faEye} className="me-1" />
-          View
-        </Button>
-        <Button
-          variant="outline-secondary"
-          size="sm"
-          disabled={isBusy}
-          onClick={() => runExport(row, "pdf")}
-        >
-          {spinning("pdf") ? (
-            <Spinner animation="border" size="sm" className="me-1" />
-          ) : (
-            <FontAwesomeIcon icon={faFilePdf} className="me-1" />
-          )}
-          Export PDF
-        </Button>
-        <Button
-          variant="outline-secondary"
-          size="sm"
-          disabled={isBusy}
-          onClick={() => runExport(row, "html")}
-        >
-          {spinning("html") ? (
-            <Spinner animation="border" size="sm" className="me-1" />
-          ) : (
-            <FontAwesomeIcon icon={faFileAlt} className="me-1" />
-          )}
-          Export HTML
-        </Button>
-        <Button
-          variant="outline-secondary"
-          size="sm"
-          disabled={isBusy}
-          onClick={() => runExport(row, "json")}
-        >
-          {spinning("json") ? (
-            <Spinner animation="border" size="sm" className="me-1" />
-          ) : (
-            <FontAwesomeIcon icon={faCode} className="me-1" />
-          )}
-          Download JSON
-        </Button>
-        <Button
-          variant="outline-success"
-          size="sm"
-          disabled={isBusy}
-          onClick={() => runVerify(row)}
-        >
-          {spinning("verify") ? (
-            <Spinner animation="border" size="sm" className="me-1" />
-          ) : (
-            <FontAwesomeIcon icon={faShieldAlt} className="me-1" />
-          )}
-          Verify Integrity
-        </Button>
-      </div>
-    );
   };
 
   return (
@@ -421,28 +405,70 @@ export default function ReportList() {
         </Alert>
       ) : null}
 
-      <Card border="light" className="shadow-sm">
-        <Card.Body className="pt-0">
-          <DataTable
-            columns={columns}
-            data={pagedRows}
-            loading={loading}
-            emptyMessage="No forensic reports yet"
-            sortable
-            actions={renderActions}
-            pagination={{ page, pageSize, total: rows.length }}
-            onPageChange={setPage}
-          />
-        </Card.Body>
-      </Card>
+      {loading ? (
+        <Row className="g-3 mb-3">
+          {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+            <Col key={`skeleton-${index}`} xs={12} md={6} xl={4}>
+              <Card border="light" className="shadow-sm h-100">
+                <Card.Body>
+                  <SkeletonLoader type="text" rows={6} />
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      ) : rows.length === 0 ? (
+        <Card border="light" className="shadow-sm">
+          <Card.Body>
+            <EmptyState
+              title="No forensic reports yet"
+              description="Complete a pipeline job to generate dual-output forensic reports."
+            />
+          </Card.Body>
+        </Card>
+      ) : (
+        <>
+          <Row className="g-3 mb-3" aria-label="Forensic reports">
+            {pagedRows.map((row) => (
+              <Col key={row.report_id} xs={12} md={6} xl={4}>
+                <ReportCard
+                  row={row}
+                  busy={busy}
+                  onExport={runExport}
+                  onVerify={runVerify}
+                />
+              </Col>
+            ))}
+          </Row>
+
+          {showPagination ? (
+            <div className="d-flex justify-content-between align-items-center px-1 pb-2">
+              <span className="small text-muted">
+                Page {page} of {totalPages} ({rows.length} total)
+              </span>
+              <nav aria-label="Reports pagination">
+                <Pagination className="mb-0">
+                  <Pagination.Prev
+                    disabled={page <= 1}
+                    aria-label="Previous page"
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  />
+                  <Pagination.Item active aria-current="page">
+                    {page}
+                  </Pagination.Item>
+                  <Pagination.Next
+                    disabled={page >= totalPages}
+                    aria-label="Next page"
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
+                  />
+                </Pagination>
+              </nav>
+            </div>
+          ) : null}
+        </>
+      )}
     </Container>
   );
-}
-
-async function evidenceServiceSafe() {
-  try {
-    return await loadEvidenceOptions();
-  } catch {
-    return [];
-  }
 }

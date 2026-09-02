@@ -29,8 +29,37 @@ export async function validate(id) {
   return data;
 }
 
-export async function verifyIntegrity(id) {
-  const { data } = await apiPost(API_ENDPOINTS.EVIDENCE.VERIFY(id));
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function verifyIntegrity(id, { maxRetries = 8 } = {}) {
+  let attempt = 0;
+  while (true) {
+    try {
+      const { data } = await apiPost(API_ENDPOINTS.EVIDENCE.VERIFY(id));
+      return data;
+    } catch (err) {
+      if (err?.status === 429 && attempt < maxRetries) {
+        const retryAfter = Number(err.details?.retry_after_seconds) || 2;
+        const legacyUpload = err.details?.group === "evidence_upload";
+        const waitMs = legacyUpload
+          ? Math.max(13000, retryAfter * 1000)
+          : Math.max(1000, retryAfter * 1000);
+        await sleep(waitMs);
+        attempt += 1;
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+export async function batchVerifyIntegrity({ caseId, evidenceIds } = {}) {
+  const payload = {};
+  if (caseId) payload.case_id = caseId;
+  if (evidenceIds?.length) payload.evidence_ids = evidenceIds;
+  const { data } = await apiPost(API_ENDPOINTS.INTEGRITY.BATCH_VERIFY, payload);
   return data;
 }
 
@@ -128,6 +157,7 @@ const evidenceService = {
   getStatistics,
   validate,
   verifyIntegrity,
+  batchVerifyIntegrity,
   getCustody,
   getStatus,
   quarantine,

@@ -2,11 +2,11 @@
 
 This document summarises the ethical-compliance position of the DFAT dissertation artefact and its evaluation design.
 
-## 1. CCCU FREC Approval Context
+## 1. Research Ethics Approval Context
 
-The project is framed as an MSc Cybersecurity research artefact under Canterbury Christ Church University. The intended ethical position is that usability evaluation and associated participant-facing materials are aligned with CCCU Faculty Research Ethics Committee expectations.
+The project is framed as a research artefact with usability evaluation. The intended ethical position is that participant-facing materials follow institutional research ethics expectations.
 
-This repository records the technical controls that support that ethical position. It does not replace the institution's formal approval paperwork.
+This repository records the technical controls that support that ethical position. It does not replace formal approval paperwork.
 
 ## 2. Participant Information and Consent
 
@@ -44,7 +44,7 @@ This means the dissertation evaluation can discuss usability outcomes without st
 ## 5. Data Storage Expectations
 
 The intended ethical storage model is:
-- university-approved encrypted storage for research data
+- approved encrypted storage for research data
 - restricted access to authorised researchers only
 - separation of code repository content from live participant response data
 
@@ -52,7 +52,7 @@ Repository-level support:
 - questionnaire response data directories are ignored from version control
 - production configuration and secret-handling workflows discourage accidental leakage
 
-Institutional specifics such as exact CCCU storage locations should be recorded in the dissertation's ethics appendix and participant documentation.
+Institutional storage locations should be recorded in the dissertation's ethics appendix and participant documentation.
 
 ## 6. Data Destruction
 
@@ -97,7 +97,7 @@ This project openly acknowledges AI use in the artefact:
 
 For dissertation framing, the project should be presented as AI-assisted tooling rather than autonomous forensic decision-making. The human investigator remains responsible for interpretation.
 
-Where the programme or university refers to AI usage levels, this implementation is consistent with a constrained, disclosed, assistive usage posture rather than hidden or unsupervised delegation.
+Where institutional AI-usage policies apply, this implementation is consistent with a constrained, disclosed, assistive usage posture rather than hidden or unsupervised delegation.
 
 ## 10. Dual-Use Risk Acknowledgment
 

@@ -51,7 +51,6 @@ export const ROUTE_PERMISSIONS = Object.freeze({
   "/ml": { resource: "ml", action: "read" },
   "/knowledge": { resource: "knowledge", action: "read" },
   "/threat-intel": { resource: "threat_intel", action: "read" },
-  "/settings": { resource: "users", action: "read" },
   "/settings/users": { resource: "users", action: "read" },
   "/settings/audit": { resource: "users", action: "read" },
 });

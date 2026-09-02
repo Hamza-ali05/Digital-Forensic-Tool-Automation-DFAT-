@@ -54,6 +54,33 @@ class BenchmarkRunRequest(BaseModel):
     dataset_name: Optional[str] = None
 
 
+class OfflineBenchmarkRequest(BaseModel):
+    """Run precision/recall against local ground truth without parsed evidence."""
+
+    ground_truth_dataset: str = Field(min_length=1)
+    dataset_source: Literal["dfrws", "cfreds"] = "dfrws"
+    dataset_name: Optional[str] = None
+    omit_count: int = Field(default=2, ge=0, le=50)
+    extra_false_positives: int = Field(default=2, ge=0, le=50)
+
+
+class ManualBaselineRequest(BaseModel):
+    """Operator-supplied manual time-to-triage baseline (seconds)."""
+
+    baseline_ttt_seconds: float = Field(gt=0)
+    label: Optional[str] = None
+
+
+class LLMSummaryEvalRequest(BaseModel):
+    """Score an investigative summary against artefacts (RQ2)."""
+
+    dataset_source: Literal["dfrws", "cfreds"] = "dfrws"
+    ground_truth_dataset: str = ""
+    evidence_id: Optional[str] = None
+    report_id: Optional[str] = None
+    summary_text: Optional[str] = None
+
+
 class ReportCompareRequest(BaseModel):
     """Request body for reproducibility comparison of two reports."""
 

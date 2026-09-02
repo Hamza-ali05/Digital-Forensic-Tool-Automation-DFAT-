@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import select
@@ -12,7 +15,22 @@ from dfat.core.interfaces.repository import IReportRepository
 from dfat.core.models.report import ForensicReport
 from dfat.database.exceptions import DatabaseError
 from dfat.database.mappers import report_domain_to_orm, report_orm_to_domain
+from dfat.database.models.evidence_orm import EvidenceRecordORM
 from dfat.database.models.report_orm import ReportRecordORM
+
+
+@dataclass(frozen=True)
+class ReportSummaryRow:
+    """Lightweight report list row without parsing JSON blobs."""
+
+    report_id: str
+    case_id: str
+    case_name: str
+    evidence_id: str
+    evidence_name: str
+    generated_at: datetime
+    pipeline_duration_seconds: float
+    llm_model_used: str
 
 
 class SQLAlchemyReportRepository(IReportRepository):
@@ -67,6 +85,49 @@ class SQLAlchemyReportRepository(IReportRepository):
                     context={"error": str(exc)},
                 ) from exc
             return [report_orm_to_domain(row) for row in rows]
+
+    async def list_summaries(self) -> list[ReportSummaryRow]:
+        """List report metadata joined with evidence (no JSON parsing)."""
+        async with self._session_factory() as session:
+            try:
+                result = await session.execute(
+                    select(
+                        ReportRecordORM.id,
+                        ReportRecordORM.case_id,
+                        ReportRecordORM.evidence_id,
+                        ReportRecordORM.pipeline_duration_seconds,
+                        ReportRecordORM.llm_model_used,
+                        ReportRecordORM.created_at,
+                        EvidenceRecordORM.file_path,
+                        EvidenceRecordORM.case_name,
+                    )
+                    .join(
+                        EvidenceRecordORM,
+                        ReportRecordORM.evidence_id == EvidenceRecordORM.id,
+                    )
+                    .order_by(ReportRecordORM.created_at.desc())
+                )
+                rows = result.all()
+            except SQLAlchemyError as exc:
+                raise DatabaseError(
+                    "Failed to list report summaries",
+                    context={"error": str(exc)},
+                ) from exc
+            summaries: list[ReportSummaryRow] = []
+            for row in rows:
+                summaries.append(
+                    ReportSummaryRow(
+                        report_id=str(row.id),
+                        case_id=str(row.case_id),
+                        case_name=str(row.case_name or "Unknown"),
+                        evidence_id=str(row.evidence_id),
+                        evidence_name=Path(row.file_path).name if row.file_path else "",
+                        generated_at=row.created_at,
+                        pipeline_duration_seconds=float(row.pipeline_duration_seconds),
+                        llm_model_used=str(row.llm_model_used or ""),
+                    )
+                )
+            return summaries
 
     async def delete(self, entity_id: str) -> bool:  # type: ignore[override]
         """Delete a forensic report by identifier."""

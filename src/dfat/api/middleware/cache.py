@@ -15,13 +15,16 @@ from starlette.responses import Response as StarletteResponse
 
 # Full API paths (Prompt 9.8 lists the suffix; the app is mounted at /api/v1).
 DEFAULT_CACHE_TTLS: dict[str, int] = {
-    "/api/v1/health": 30,
     # Readiness is a live probe — caching it reports stale component state.
     "/api/v1/ai/health": 30,
     "/api/v1/evidence/statistics": 60,
+    "/api/v1/evidence/inventory": 45,
     "/api/v1/pipeline/parsers": 300,
+    "/api/v1/pipeline/jobs": 15,
+    "/api/v1/reports": 30,
     "/api/v1/evaluation/benchmark/datasets": 600,
     "/api/v1/cases": 30,
+    "/api/v1/cases/mine": 30,
 }
 
 _EVIDENCE_DETAIL_RE = re.compile(r"^/api/v1/evidence/[^/]+/detail$")
@@ -29,7 +32,6 @@ _EVIDENCE_DETAIL_TTL = 30
 
 _PUBLIC_PATHS = frozenset(
     {
-        "/api/v1/health",
         "/api/v1/ai/health",
     }
 )
@@ -177,6 +179,9 @@ class ResponseCacheMiddleware(BaseHTTPMiddleware):
             self.invalidate_prefix("/api/v1/cases")
         if normalized.startswith("/api/v1/pipeline"):
             self.invalidate_path("/api/v1/pipeline/parsers")
+            self.invalidate_path("/api/v1/pipeline/jobs")
+        if normalized.startswith("/api/v1/reports"):
+            self.invalidate_prefix("/api/v1/reports")
         if normalized.startswith("/api/v1/evaluation"):
             self.invalidate_path("/api/v1/evaluation/benchmark/datasets")
 

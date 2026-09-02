@@ -13,7 +13,7 @@ from typing import Optional
 
 
 DEFAULT_URL = "http://localhost:3000"
-DEFAULT_HEALTH_URL = "http://localhost:8000/api/v1/health"
+DEFAULT_HEALTH_URL = "http://localhost:8000/api/v1/health/ready"
 DEFAULT_TIMEOUT = 60
 POLL_INTERVAL = 2
 

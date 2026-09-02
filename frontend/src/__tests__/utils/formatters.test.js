@@ -9,6 +9,8 @@ import {
   formatPercentage,
   humanizeFileName,
   humanizeLabel,
+  humanizeApiError,
+  humanizePipelineError,
 } from "utils/formatters";
 
 describe("formatters", () => {
@@ -54,5 +56,36 @@ describe("formatters", () => {
   test("test_humanizeLabel_strips_numeric_and_status_suffixes", () => {
     expect(humanizeLabel("E2E Case 1786661719092")).toBe("E2E Case");
     expect(humanizeLabel("Dev Sample — Active")).toBe("Dev Sample");
+  });
+
+  test("test_humanizePipelineError_filesystem_failure", () => {
+    const raw =
+      "[DiskParsingError] Failed to open filesystem at offset 0 (context: {'offset': 0})";
+    expect(humanizePipelineError(raw)).toMatch(/recognisable file system/i);
+    expect(humanizePipelineError(raw)).not.toMatch(/context:/i);
+  });
+
+  test("test_humanizePipelineError_placeholder_evidence", () => {
+    expect(humanizePipelineError("Parsing stage failed on placeholder evidence")).toMatch(
+      /placeholder demo image/i
+    );
+    expect(humanizePipelineError("Parsing stage failed on placeholder evidence")).not.toMatch(
+      /placeholder evidence/i
+    );
+  });
+
+  test("test_humanizeApiError_missing_artefacts", () => {
+    const error = {
+      status: 422,
+      message: "No artefacts are available for this evidence. Run the analysis pipeline on evidence that yields parsed artefacts, then retry.",
+      details: {
+        evidence_id: "abc",
+        validation_failures: [
+          "No parsed artefacts found in the artefact store or latest forensic report.",
+        ],
+      },
+    };
+    expect(humanizeApiError(error)).toMatch(/No artefacts are available/i);
+    expect(humanizeApiError(error)).not.toMatch(/validation_failures/i);
   });
 });

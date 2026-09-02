@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -11,13 +10,17 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from dfat.core.enums import EvidenceType, PipelineStage
-from dfat.core.exceptions import EvidenceNotFoundError, UnsupportedFormatError
+from dfat.core.exceptions import DiskParsingError, EvidenceNotFoundError, UnsupportedFormatError
 from dfat.core.models.evidence import EvidenceImage, MemoryDump
 from dfat.evidence_management.hash_service import MultiHashService
 from dfat.evidence_management.models import HashSet
 from dfat.forensic_engine.acquisition.image_handler import DiskImageHandler
 from dfat.forensic_engine.acquisition.integrity import IntegrityChecker
 from dfat.forensic_engine.acquisition.memory_handler import MemoryDumpHandler
+from dfat.pipeline.soft_acquire import (
+    should_soft_acquire_evidence,
+    should_soft_acquire_on_disk_error,
+)
 from dfat.services.audit_service import AuditService
 
 logger = logging.getLogger(__name__)
@@ -179,9 +182,9 @@ class EvidenceLoader:
 
     def _build_handler_context(self, evidence: EvidenceImage) -> dict[str, Any]:
         """Open disk or memory handlers and return the context mapping."""
-        if os.environ.get("DFAT_E2E_SOFT_ACQUIRE") == "1":
+        if should_soft_acquire_evidence(evidence):
             logger.warning(
-                "Soft-acquire enabled; skipping forensic handlers for evidence %s",
+                "Soft-acquire enabled for synthetic evidence %s; skipping forensic handlers",
                 evidence.evidence_id,
             )
             return {}
@@ -191,20 +194,24 @@ class EvidenceLoader:
                 img_info = self._disk_handler.open_image(evidence)
                 try:
                     fs_info = self._disk_handler.get_filesystem(img_info)
+                except DiskParsingError:
+                    self._disk_handler.close_image(img_info)
+                    raise
                 except Exception:
                     self._disk_handler.close_image(img_info)
                     raise
                 return {"img_info": img_info, "fs_info": fs_info}
-            except Exception:
-                # Tiny/synthetic fixtures used in E2E often cannot be opened by
-                # pytsk3; allow the pipeline to continue with an empty handler.
-                if os.environ.get("DFAT_E2E_SOFT_ACQUIRE") == "1":
+            except DiskParsingError as exc:
+                if should_soft_acquire_on_disk_error(evidence):
                     logger.warning(
-                        "Soft-acquire enabled; continuing without disk handler "
-                        "for evidence %s",
+                        "Development soft-acquire fallback for evidence %s: %s",
                         evidence.evidence_id,
+                        exc,
                     )
-                    return {}
+                    return {
+                        "soft_acquire": True,
+                        "soft_acquire_reason": str(exc),
+                    }
                 raise
 
         if evidence.evidence_type is EvidenceType.MEMORY_DUMP:
@@ -220,7 +227,7 @@ class EvidenceLoader:
             try:
                 volatility_context = self._memory_handler.get_volatility_context(dump)
             except Exception:
-                if os.environ.get("DFAT_E2E_SOFT_ACQUIRE") == "1":
+                if should_soft_acquire_evidence(evidence):
                     logger.warning(
                         "Soft-acquire enabled; continuing without volatility "
                         "context for evidence %s",

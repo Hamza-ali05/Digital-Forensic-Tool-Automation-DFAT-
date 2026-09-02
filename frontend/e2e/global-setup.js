@@ -2,7 +2,7 @@ const { spawnSync } = require("child_process");
 const path = require("path");
 const { API_BASE, investigator } = require("./helpers/credentials");
 
-const API_HEALTH = "http://127.0.0.1:8000/api/v1/health";
+const API_HEALTH = "http://127.0.0.1:8000/api/v1/health/ready";
 const REPO_ROOT = path.resolve(__dirname, "../..");
 
 async function waitForHealth(url, attempts = 90) {

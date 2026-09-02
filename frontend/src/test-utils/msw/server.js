@@ -47,8 +47,8 @@ export const handlers = [
       })
     )
   ),
-  rest.get(`${API}/health`, (req, res, ctx) =>
-    res(ctx.status(200), ctx.json({ status: "healthy" }))
+  rest.get(`${API}/health/ready`, (req, res, ctx) =>
+    res(ctx.status(200), ctx.json({ status: "ready", checks: {} }))
   ),
 ];
 

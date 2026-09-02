@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, PlainTextResponse
+
+from pathlib import Path
 
 from dfat.api.dependencies import get_report_service, require_permission
 from dfat.api.schemas.requests import ReportCompareRequest
@@ -23,13 +23,39 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 
 def _to_report_response(report: ForensicReport) -> ReportResponse:
     """Map a ForensicReport to the summary API response."""
+    audit_meta = report.audit_metadata or {}
+    evidence_name = ""
+    if report.json_report.evidence_id:
+        evidence_name = str(audit_meta.get("evidence_file_name") or "")
     return ReportResponse(
         report_id=report.report_id,
+        case_id=report.case.case_id,
         case_name=report.case.case_name,
+        evidence_id=report.json_report.evidence_id,
+        evidence_name=evidence_name,
         json_report_url=f"/api/v1/reports/{report.report_id}/json",
         narrative_report_url=f"/api/v1/reports/{report.report_id}/narrative",
         generated_at=report.json_report.generated_at,
         pipeline_duration_seconds=report.pipeline_duration_seconds,
+        llm_model_used=report.narrative_report.llm_model_used,
+        use_fallback_analyzer=bool(audit_meta.get("use_fallback_analyzer")),
+    )
+
+
+def _summary_to_report_response(summary) -> ReportResponse:
+    """Map a lightweight report summary row to the list API response."""
+    return ReportResponse(
+        report_id=summary.report_id,
+        case_id=summary.case_id,
+        case_name=summary.case_name,
+        evidence_id=summary.evidence_id,
+        evidence_name=summary.evidence_name,
+        json_report_url=f"/api/v1/reports/{summary.report_id}/json",
+        narrative_report_url=f"/api/v1/reports/{summary.report_id}/narrative",
+        generated_at=summary.generated_at,
+        pipeline_duration_seconds=summary.pipeline_duration_seconds,
+        llm_model_used=summary.llm_model_used or None,
+        use_fallback_analyzer=False,
     )
 
 
@@ -62,8 +88,8 @@ async def list_reports(
     report_service: ReportService = Depends(get_report_service),
 ) -> list[ReportResponse]:
     """List all persisted forensic reports (newest first)."""
-    reports = await report_service.list_reports()
-    return [_to_report_response(report) for report in reports]
+    summaries = await report_service.list_report_summaries()
+    return [_summary_to_report_response(row) for row in summaries]
 
 
 @router.get("/{report_id}", response_model=ReportResponse)

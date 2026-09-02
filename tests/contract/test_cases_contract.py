@@ -72,36 +72,33 @@ def test_get_case_nonexistent_returns_404(
     assert response.status_code == 404
 
 
-def test_open_case_without_lead_returns_400(
+def test_create_case_assigns_creator_as_lead(
     investigator_client: AuthedClient,
 ) -> None:
     created = investigator_client.post(
         "/api/v1/cases",
-        json={"case_name": "No Lead Case", "description": "no lead"},
+        json={"case_name": "Auto Lead Case", "description": "creator is lead"},
     )
-    case_id = created.json()["case_id"]
+    assert created.status_code == 201
+    body = created.json()
+    assert body.get("lead_investigator_id")
+    case_id = body["case_id"]
     response = investigator_client.post(f"/api/v1/cases/{case_id}/open")
-    assert response.status_code == 400
-    assert response.json()["error_type"] == "NoLeadInvestigatorError"
+    assert response.status_code == 200
+    assert str(response.json()["status"]).lower() == "open"
 
 
 def test_open_case_with_lead_returns_200(
     investigator_client: AuthedClient,
-    seeded_db: dict[str, Any],
 ) -> None:
     created = investigator_client.post(
         "/api/v1/cases",
         json={"case_name": "Lead Case", "description": "with lead"},
     )
+    assert created.status_code == 201
     case_id = created.json()["case_id"]
-    assign = investigator_client.post(
-        f"/api/v1/cases/{case_id}/investigators",
-        json={
-            "user_id": seeded_db["user_ids"]["investigator"],
-            "role": "lead",
-        },
-    )
-    assert assign.status_code == 200
+    # Creator is assigned as lead on create; open should succeed immediately.
+    assert created.json().get("lead_investigator_id")
     response = investigator_client.post(f"/api/v1/cases/{case_id}/open")
     assert response.status_code == 200
     assert str(response.json()["status"]).lower() == "open"
@@ -154,13 +151,6 @@ def test_close_case_returns_200_with_closed_status(
         json={"case_name": "Close Case", "description": "close"},
     )
     case_id = created.json()["case_id"]
-    investigator_client.post(
-        f"/api/v1/cases/{case_id}/investigators",
-        json={
-            "user_id": seeded_db["user_ids"]["investigator"],
-            "role": "lead",
-        },
-    )
     assert investigator_client.post(f"/api/v1/cases/{case_id}/open").status_code == 200
     assert (
         investigator_client.post(f"/api/v1/cases/{case_id}/activate").status_code == 200

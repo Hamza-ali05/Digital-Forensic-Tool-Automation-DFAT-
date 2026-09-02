@@ -65,6 +65,9 @@ frontend/.env.test
 frontend/.env.test.local
 !frontend/.env.example
 
+# Frontend build caches (nested under node_modules)
+frontend/node_modules/.cache/
+
 # IDE / OS
 .idea/
 .vscode/
@@ -89,22 +92,25 @@ logs/
 .dfat_frontend.pid
 
 # Runtime / forensic data (local only — keep .gitkeep placeholders)
-data/evidence/*
-data/datasets/*
-data/outputs/*
-data/questionnaire/responses/*
-data/knowledge/*
-data/ml/*
-data/e2e/*
+data/evidence/**
 !data/evidence/.gitkeep
+data/datasets/**
 !data/datasets/.gitkeep
+data/outputs/**
 !data/outputs/.gitkeep
+data/questionnaire/responses/**
 !data/questionnaire/.gitkeep
 !data/questionnaire/responses/.gitkeep
-!data/ground_truth/.gitkeep
+data/knowledge/**
 !data/knowledge/.gitkeep
+data/ml/**
 !data/ml/.gitkeep
+data/e2e/**
 !data/e2e/.gitkeep
+data/ground_truth/**
+!data/ground_truth/.gitkeep
+data/sigma_rules/**
+data/yara_rules/**
 
 # Forensic image / dump patterns
 *.dd
@@ -122,6 +128,7 @@ data/e2e/*
 *.db
 *.db-journal
 *.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 

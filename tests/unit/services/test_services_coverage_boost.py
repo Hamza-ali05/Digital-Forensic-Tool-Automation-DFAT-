@@ -129,6 +129,7 @@ def _mgmt_service() -> tuple[EvidenceManagementService, dict]:
     deps["case_repo"].add_evidence_id = AsyncMock()
     deps["audit_service"].log_action = AsyncMock()
     deps["custody_service"].get_custody_chains = AsyncMock(return_value={})
+    deps["custody_service"].get_custody_summaries = AsyncMock(return_value={})
     service = EvidenceManagementService(
         evidence_service=deps["evidence_service"],
         validation_service=deps["validation_service"],
@@ -177,6 +178,7 @@ async def test_case_service_create_list_summary_archive() -> None:
 
     out = await service.create_case("Name", "desc", "u1")
     assert out.case_id == "c1"
+    case_repo.add_investigator.assert_awaited()
     assert await service.list_cases() == [created]
     assert await service.list_cases(CaseStatus.CREATED) == [created]
     assert await service.get_my_cases("u1") == [created]
@@ -569,7 +571,7 @@ async def test_evaluation_service_paths(sample_artefact_set: ArtefactSet) -> Non
     with pytest.raises(GroundTruthNotFoundError):
         await service.run_benchmark_for_dataset("ev", "ds", "unknown", "u1")
     artefact_repo.get = AsyncMock(return_value=None)
-    with pytest.raises(EvidenceNotFoundError):
+    with pytest.raises(EvidenceValidationError):
         await service.run_benchmark_for_dataset("ev", "ds", "dfrws", "u1")
 
     artefact_repo.get = AsyncMock(return_value=sample_artefact_set)

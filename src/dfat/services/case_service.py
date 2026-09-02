@@ -16,7 +16,6 @@ from dfat.case_management.exceptions import (
     CaseError,
     CaseNotFoundError,
     InvalidCaseTransitionError,
-    NoLeadInvestigatorError,
 )
 from dfat.core.enums import PipelineStage
 from dfat.core.models.case import Case, CaseInvestigator
@@ -80,6 +79,13 @@ class CaseService:
         case = Case(metadata=metadata, status=CaseStatus.CREATED)
         await self._case_repo.save(case, created_by_user_id=created_by)
         created = await self._require_case(case.case_id)
+        # Creator becomes lead so lifecycle open is not blocked by an empty roster.
+        created = await self.assign_investigator(
+            created.case_id,
+            created_by,
+            "lead",
+            created_by,
+        )
         await self._audit(
             action="case_created",
             case_id=created.case_id,
@@ -87,19 +93,21 @@ class CaseService:
             details={
                 "case_name": case_name,
                 "status": created.status.value,
+                "lead_investigator_id": created.lead_investigator_id,
             },
         )
         return created
 
     async def open_case(self, case_id: str, user_id: str) -> Case:
-        """Transition ``CREATED`` → ``OPEN``. Requires a lead investigator."""
+        """Transition ``CREATED`` → ``OPEN``.
+
+        If no lead is assigned yet (legacy cases), the acting user is assigned
+        as lead before the transition so open is not a dead-end.
+        """
         case = await self._require_case(case_id)
         self._validate_transition(case.status, CaseStatus.OPEN)
         if not self._has_lead(case):
-            raise NoLeadInvestigatorError(
-                "Cannot open case without a lead investigator",
-                context={"case_id": case_id},
-            )
+            await self.assign_investigator(case_id, user_id, "lead", user_id)
         updated = await self._transition(case_id, CaseStatus.OPEN, user_id)
         return updated
 

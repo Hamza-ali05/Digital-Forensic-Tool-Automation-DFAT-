@@ -15,10 +15,12 @@ from dfat.evaluation.benchmark.performance import (
     SpeedupResult,
     TimeStats,
 )
+from dfat.evaluation.benchmark.synthetic_recovery import SyntheticRecoveryBuilder
 from dfat.evaluation.benchmark.visualisation import MetricsVisualiser
 
 __all__ = [
     "BenchmarkComparator",
+    "SyntheticRecoveryBuilder",
     "CFReDSHandler",
     "DFRWSHandler",
     "GroundTruth",

@@ -155,6 +155,8 @@ def _build_capabilities(request: Request) -> CapabilitiesResponse:
                 and "sigma_rules" not in ti.degraded_capabilities
             )
             mitre = ti.details.get("mitre_techniques_mapped", 0) > 0
+            if "mitre_mappings" in ti.degraded_capabilities:
+                mitre = False
 
         kb = _phase_result(report, InitPhase.KNOWLEDGE_BASE)
         ioc = _phase_result(report, InitPhase.IOC_DATABASE)

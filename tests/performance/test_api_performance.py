@@ -69,22 +69,22 @@ def _open_active_case(
 
 
 @pytest.mark.performance
-async def test_health_endpoint_under_10ms(app_client: TestClient) -> None:
-    """Cached GET /health completes in under 10 ms."""
+async def test_ai_health_endpoint_under_10ms(app_client: TestClient) -> None:
+    """Cached GET /ai/health completes in under 10 ms."""
     async with _asgi_client(app_client.app) as client:
-        warmup = await client.get("/api/v1/health")
+        warmup = await client.get("/api/v1/ai/health")
         assert warmup.status_code == 200
         samples: list[float] = []
         last_cache = ""
         for _ in range(8):
             started = time.perf_counter()
-            response = await client.get("/api/v1/health")
+            response = await client.get("/api/v1/ai/health")
             samples.append(_elapsed_ms(started))
             assert response.status_code == 200
             last_cache = response.headers.get("x-cache", "")
         assert last_cache == "HIT"
         assert min(samples) < 10, (
-            f"health min {min(samples):.1f}ms samples={samples!r} (budget 10ms)"
+            f"ai health min {min(samples):.1f}ms samples={samples!r} (budget 10ms)"
         )
 
 
@@ -198,17 +198,17 @@ async def test_report_json_under_200ms(
 
 @pytest.mark.performance
 async def test_concurrent_requests_stable(app_client: TestClient) -> None:
-    """Ten concurrent GET /health calls all succeed within 500 ms each."""
+    """Ten concurrent GET /health/ready calls all succeed within 500 ms each."""
     async with _asgi_client(app_client.app) as client:
-        await client.get("/api/v1/health")
+        await client.get("/api/v1/health/ready")
 
         async def _one() -> tuple[int, float]:
             started = time.perf_counter()
-            response = await client.get("/api/v1/health")
+            response = await client.get("/api/v1/health/ready")
             return response.status_code, _elapsed_ms(started)
 
         results = await asyncio.gather(*[_one() for _ in range(10)])
 
     for status_code, elapsed in results:
         assert status_code == 200
-        assert elapsed < 500, f"concurrent health took {elapsed:.1f}ms (budget 500ms)"
+        assert elapsed < 500, f"concurrent readiness took {elapsed:.1f}ms (budget 500ms)"

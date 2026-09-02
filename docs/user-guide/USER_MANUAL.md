@@ -2,7 +2,7 @@
 
 **Digital Forensics Automation Tool with AI-Assisted Evidence Analysis**
 
-Version 0.1.0 | Canterbury Christ Church University | MSc Cybersecurity
+Version 0.1.0
 
 ---
 
@@ -641,4 +641,3 @@ For issues or questions:
 - Check the **Help** page within DFAT
 - Review the [API Examples](../api/EXAMPLES.md)
 - Consult the [Operations Guide](../operations/OPERATIONS_GUIDE.md)
-- Contact: 100176885@canterbury.ac.uk

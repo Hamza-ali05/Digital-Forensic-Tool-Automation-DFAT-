@@ -65,17 +65,25 @@ class ThreatIntelInitializer:
             degraded.append("sigma_rules")
             logger.warning("Sigma rule loading failed: %s", exc)
 
-        # MITRE mapper (embedded, always available)
+        # MITRE mapper (embedded TECHNIQUE_DB — always available)
         try:
-            mitre_techniques = 0
-            if hasattr(self._mitre_mapper, "get_tactic_coverage"):
-                mitre_techniques = len(
-                    getattr(self._mitre_mapper, "_techniques", {})
-                )
+            technique_db = getattr(self._mitre_mapper, "TECHNIQUE_DB", None)
+            if not isinstance(technique_db, dict):
+                technique_db = getattr(self._mitre_mapper, "_techniques", {}) or {}
+            mitre_techniques = len(technique_db)
             details["mitre_techniques_mapped"] = mitre_techniques
+            if mitre_techniques == 0:
+                degraded.append("mitre_mappings")
+                logger.warning("MITRE ATT&CK technique database is empty")
+            else:
+                logger.info(
+                    "MITRE mapper ready — %d techniques embedded",
+                    mitre_techniques,
+                )
         except Exception as exc:  # noqa: BLE001
             details["mitre_techniques_mapped"] = 0
             details["mitre_error"] = str(exc)
+            degraded.append("mitre_mappings")
 
         duration_ms = (time.perf_counter() - started) * 1000.0
         status = InitStatus.COMPLETED if not degraded else InitStatus.DEGRADED

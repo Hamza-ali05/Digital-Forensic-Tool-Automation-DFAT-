@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import time
 from typing import Optional
 
@@ -15,12 +14,14 @@ from dfat.core.models.pipeline import StageResult
 from dfat.forensic_engine.normalizer import ArtefactNormalizer
 from dfat.pipeline.enums import ParserStatus
 from dfat.pipeline.error_handler import PipelineErrorHandler
+from dfat.pipeline.error_messages import pipeline_error_message
 from dfat.pipeline.evidence_router import EvidenceRouter
 from dfat.pipeline.exceptions import AllParsersFailedError
 from dfat.pipeline.models import ParserResult
 from dfat.pipeline.parser_registry import ParserRegistry
 from dfat.pipeline.progress_tracker import ProgressNotFoundError, ProgressTracker
 from dfat.pipeline.stage_interface import IPipelineStage, PipelineContext
+from dfat.pipeline.soft_acquire import should_skip_forensic_parsing
 from dfat.services.audit_service import AuditService
 
 logger = logging.getLogger(__name__)
@@ -95,8 +96,9 @@ class ParsingStage(IPipelineStage):
                 errors=["No evidence available for parsing"],
             )
 
-        # E2E soft-acquire: skip real parsers and continue with an empty artefact set.
-        if os.environ.get("DFAT_E2E_SOFT_ACQUIRE") == "1":
+        # Soft-acquire: skip real parsers for synthetic / placeholder evidence.
+        handler_context = context.metadata.get("handler_context")
+        if should_skip_forensic_parsing(evidence, handler_context):
             logger.warning(
                 "Soft-acquire enabled; skipping parsers for evidence %s",
                 evidence.evidence_id,
@@ -296,11 +298,11 @@ class ParsingStage(IPipelineStage):
                 evidence_type,
             )
             parser_result.duration_seconds = duration
-            self._progress.fail_parser(job_id, name, str(exc))
+            self._progress.fail_parser(job_id, name, pipeline_error_message(exc))
             return _ParserRunOutcome(
                 parser_result=parser_result,
                 artefact_set=None,
-                error_message=f"{name}: {exc}",
+                error_message=f"{name}: {pipeline_error_message(exc)}",
             )
 
     def _ensure_progress_job(self, job_id: str) -> None:

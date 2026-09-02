@@ -97,11 +97,32 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             return request.client.host
         return "unknown"
 
+    def _is_evidence_registration_post(self, method: str, path: str) -> bool:
+        """Return True only for evidence registration POST routes."""
+        if method.upper() != "POST" or not path.startswith("/api/v1/evidence"):
+            return False
+        if path == "/api/v1/evidence":
+            return True
+        if path == "/api/v1/evidence/register":
+            return True
+        return False
+
+    def _is_rate_limit_exempt(self, method: str, path: str) -> bool:
+        """Operational evidence routes that must not share the upload bucket."""
+        if method.upper() != "POST" or not path.startswith("/api/v1/evidence/"):
+            return False
+        suffixes = (
+            "/verify-integrity",
+            "/validate",
+            "/quarantine",
+        )
+        return any(path.endswith(suffix) for suffix in suffixes)
+
     def _endpoint_group(self, method: str, path: str) -> str:
         """Classify a request into a rate-limit group."""
         if path.startswith("/api/v1/auth"):
             return "auth"
-        if method.upper() == "POST" and path.startswith("/api/v1/evidence"):
+        if self._is_evidence_registration_post(method, path):
             return "evidence_upload"
         return "general"
 
@@ -155,6 +176,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         path = request.url.path
         if path.startswith("/api/v1/health") or path in {"/health", "/ready", "/live"}:
+            return await call_next(request)
+
+        if self._is_rate_limit_exempt(request.method, path):
             return await call_next(request)
 
         ip = self._client_ip(request)

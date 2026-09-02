@@ -212,54 +212,125 @@ export default function IntegrityCheck() {
     setExpandedFail(null);
     setBatchProgress({ done: 0, total: targets.length });
 
-    const rows = [];
-    for (let i = 0; i < targets.length; i += 1) {
-      const item = targets[i];
-      let original = item.hash_set || {};
-      try {
-        const detail = await evidenceService.getDetail(item.evidence_id);
-        original = detail?.metadata?.hash_set || original;
-        if (!original?.sha256 && detail?.original_hash) {
-          original = { ...original, sha256: detail.original_hash };
-        }
-      } catch {
-        // use inventory hash_set
-      }
+    const hashById = Object.fromEntries(
+      targets.map((item) => [item.evidence_id, item.hash_set || {}])
+    );
 
-      try {
-        const result = await evidenceService.verifyIntegrity(item.evidence_id);
-        const mismatched = mismatchAlgos(result.discrepancies);
-        rows.push({
+    const mapBatchRows = (items = []) =>
+      items.map((item) => {
+        const rateLimited = /rate limit/i.test(String(item.error || ""));
+        return {
           id: item.evidence_id,
           evidence_id: item.evidence_id,
-          file_name: item.file_name,
-          passed: Boolean(result.integrity_verified),
-          mismatched: mismatched.join(", ") || (result.integrity_verified ? "—" : "unknown"),
-          timestamp: result.timestamp,
-          original,
-          result,
-          error: null,
-        });
-      } catch (err) {
-        rows.push({
-          id: item.evidence_id,
-          evidence_id: item.evidence_id,
-          file_name: item.file_name,
-          passed: false,
-          mismatched: "error",
-          timestamp: new Date().toISOString(),
-          original,
-          result: null,
-          error: err?.message || "Verification request failed",
-        });
+          file_name:
+            item.file_name ||
+            targets.find((row) => row.evidence_id === item.evidence_id)?.file_name ||
+            "—",
+          passed: Boolean(item.integrity_verified),
+          timestamp: item.timestamp,
+          original: hashById[item.evidence_id] || {},
+          result: item.error
+            ? null
+            : {
+                integrity_verified: item.integrity_verified,
+                hash_set: item.hash_set,
+                timestamp: item.timestamp,
+                discrepancies: item.discrepancies,
+              },
+          error: item.error,
+          rateLimited,
+        };
+      });
+
+    let rows = [];
+    try {
+      const batchPayload = await evidenceService.batchVerifyIntegrity(
+        batchCaseId
+          ? { caseId: batchCaseId }
+          : { evidenceIds: targets.map((item) => item.evidence_id) }
+      );
+      rows = mapBatchRows(batchPayload?.items || []);
+      setBatchProgress({ done: rows.length, total: targets.length });
+      setBatchResults(rows);
+    } catch (batchErr) {
+      if (batchErr?.status !== 404 && batchErr?.status !== 405) {
+        notifyError(
+          "Batch verify failed",
+          batchErr?.message || "Could not run batch verification."
+        );
+        setBatchBusy(false);
+        return;
       }
-      setBatchProgress({ done: i + 1, total: targets.length });
-      setBatchResults([...rows]);
+    }
+
+    if (!rows.length) {
+      let legacyPace = false;
+      for (let i = 0; i < targets.length; i += 1) {
+        const item = targets[i];
+        let original = item.hash_set || {};
+        const hasRegisteredHash =
+          pickHash(original, "sha256") || pickHash(original, "md5");
+        if (!hasRegisteredHash) {
+          try {
+            const detail = await evidenceService.getDetail(item.evidence_id);
+            original = detail?.metadata?.hash_set || original;
+            if (!original?.sha256 && detail?.original_hash) {
+              original = { ...original, sha256: detail.original_hash };
+            }
+          } catch {
+            // use inventory hash_set
+          }
+        }
+
+        try {
+          const result = await evidenceService.verifyIntegrity(item.evidence_id);
+          rows.push({
+            id: item.evidence_id,
+            evidence_id: item.evidence_id,
+            file_name: item.file_name,
+            passed: Boolean(result.integrity_verified),
+            timestamp: result.timestamp,
+            original,
+            result,
+            error: null,
+            rateLimited: false,
+          });
+        } catch (err) {
+          const rateLimited = err?.status === 429;
+          if (rateLimited && err?.details?.group === "evidence_upload") {
+            legacyPace = true;
+          }
+          rows.push({
+            id: item.evidence_id,
+            evidence_id: item.evidence_id,
+            file_name: item.file_name,
+            passed: false,
+            timestamp: new Date().toISOString(),
+            original,
+            result: null,
+            error: rateLimited
+              ? "Too many requests — server rate limit reached. Restart the API, then retry."
+              : err?.message || "Verification request failed",
+            rateLimited,
+          });
+        }
+        setBatchProgress({ done: i + 1, total: targets.length });
+        setBatchResults([...rows]);
+        if (legacyPace && i + 1 < targets.length) {
+          await new Promise((resolve) => setTimeout(resolve, 13000));
+        }
+      }
     }
 
     const passed = rows.filter((r) => r.passed).length;
+    const rateLimitedCount = rows.filter((r) => r.rateLimited).length;
     if (passed === rows.length) {
       success("Batch complete", `All ${rows.length} items passed integrity checks.`);
+    } else if (rateLimitedCount > 0) {
+      warning(
+        "Batch incomplete",
+        `${passed}/${rows.length} passed. ${rateLimitedCount} hit the server rate limit — restart the API if needed, then retry.`
+      );
     } else {
       warning(
         "Batch complete",
@@ -293,14 +364,11 @@ export default function IntegrityCheck() {
         render: (row) =>
           row.passed ? (
             <Badge bg="success">Pass</Badge>
+          ) : row.rateLimited ? (
+            <Badge bg="warning">Rate limited</Badge>
           ) : (
             <Badge bg="danger">Fail</Badge>
           ),
-      },
-      {
-        key: "mismatched",
-        header: "Mismatched Algorithm",
-        accessor: "mismatched",
       },
       {
         key: "timestamp",

@@ -174,11 +174,11 @@ class SQLAlchemyPipelineRepository:
             case_id: Optional owning case filter.
 
         Returns:
-            Matching jobs ordered by creation time ascending.
+            Matching jobs ordered by creation time descending (newest first).
         """
         async with self._session_factory() as session:
             try:
-                stmt = select(PipelineJobORM).order_by(PipelineJobORM.created_at.asc())
+                stmt = select(PipelineJobORM).order_by(PipelineJobORM.created_at.desc())
                 if status is not None:
                     stmt = stmt.where(PipelineJobORM.status == status.value)
                 if case_id is not None:

@@ -10,6 +10,7 @@ jest.mock("services/cases.service", () => ({
   __esModule: true,
   default: {
     list: jest.fn(),
+    open: jest.fn(),
     close: jest.fn(),
   },
 }));
@@ -62,12 +63,13 @@ describe("CaseList", () => {
     casesService.list.mockResolvedValue({ cases: CASES, total: 2 });
   });
 
-  test("test_renders_case_table", async () => {
+  test("test_renders_case_cards", async () => {
     renderWithProviders(<CaseList />, { role: "investigator" });
     await wait(() => {
       expect(screen.getByText("Alpha Case")).toBeInTheDocument();
     });
     expect(screen.getByText("Beta Case")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /View/i }).length).toBeGreaterThan(0);
   });
 
   test("test_filters_by_status", async () => {

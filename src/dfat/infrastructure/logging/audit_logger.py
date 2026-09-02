@@ -47,6 +47,8 @@ class ForensicAuditLogger:
         self._audit_log_path = audit_log_path
         self._hash_algorithm = hash_algorithm
         self._lock = threading.Lock()
+        self._tail_state: tuple[str, int] | None = None
+        self._tail_mtime_ns: int | None = None
         self._audit_log_path.parent.mkdir(parents=True, exist_ok=True)
         if not self._audit_log_path.exists():
             self._audit_log_path.touch()
@@ -95,6 +97,11 @@ class ForensicAuditLogger:
                 handle.write(json.dumps(record, default=str, ensure_ascii=True))
                 handle.write("\n")
                 handle.flush()
+            self._tail_state = (entry_hash, next_number + 1)
+            try:
+                self._tail_mtime_ns = self._audit_log_path.stat().st_mtime_ns
+            except OSError:
+                self._tail_mtime_ns = None
             return entry
 
     def flush(self) -> None:
@@ -174,14 +181,58 @@ class ForensicAuditLogger:
         Returns:
             Tuple of ``(previous_hash, next_entry_number)``.
         """
-        last_hash = _GENESIS_HASH
-        next_number = 1
-        for record in self._iter_records():
+        if self._audit_log_path.exists():
+            try:
+                mtime_ns = self._audit_log_path.stat().st_mtime_ns
+                if self._tail_state is not None and self._tail_mtime_ns == mtime_ns:
+                    return self._tail_state
+            except OSError:
+                pass
+        else:
+            self._tail_state = (_GENESIS_HASH, 1)
+            self._tail_mtime_ns = None
+            return self._tail_state
+
+        record = self._read_last_record()
+        if record is None:
+            state = (_GENESIS_HASH, 1)
+        else:
             last_hash = str(record.get(_CHAIN_HASH_KEY, _GENESIS_HASH))
             entry = record.get("entry", {})
             entry_number = int(entry.get("entry_number", 0))
-            next_number = entry_number + 1
-        return last_hash, next_number
+            state = (last_hash, entry_number + 1)
+
+        self._tail_state = state
+        try:
+            self._tail_mtime_ns = self._audit_log_path.stat().st_mtime_ns
+        except OSError:
+            self._tail_mtime_ns = None
+        return state
+
+    def _read_last_record(self) -> Optional[dict[str, Any]]:
+        """Load the last JSONL audit record without scanning the full file."""
+        if not self._audit_log_path.exists():
+            return None
+        try:
+            size = self._audit_log_path.stat().st_size
+        except OSError:
+            return None
+        if size <= 0:
+            return None
+
+        with self._audit_log_path.open("rb") as handle:
+            block = min(8192, size)
+            handle.seek(-block, os.SEEK_END)
+            data = handle.read(block)
+
+        for raw in reversed(data.splitlines()):
+            stripped = raw.strip()
+            if not stripped:
+                continue
+            loaded = json.loads(stripped.decode("utf-8"))
+            if isinstance(loaded, dict):
+                return loaded
+        return None
 
     def _iter_records(self) -> list[dict[str, Any]]:
         """Load all JSONL audit records from disk.

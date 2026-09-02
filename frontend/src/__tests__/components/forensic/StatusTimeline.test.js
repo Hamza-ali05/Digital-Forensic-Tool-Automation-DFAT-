@@ -81,4 +81,19 @@ describe("StatusTimeline", () => {
       screen.getByText(/Timeline entries will appear here/i)
     ).toBeInTheDocument();
   });
+
+  test("test_uses_unique_keys_when_entry_number_repeats", () => {
+    const entries = [
+      { entry_number: 365, label: "First" },
+      { entry_number: 365, label: "Second" },
+    ];
+    renderWithProviders(
+      <StatusTimeline
+        entries={entries}
+        renderEntry={(entry) => <div>{entry.label}</div>}
+      />
+    );
+    expect(screen.getByText("First")).toBeInTheDocument();
+    expect(screen.getByText("Second")).toBeInTheDocument();
+  });
 });

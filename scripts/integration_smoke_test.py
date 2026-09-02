@@ -45,7 +45,7 @@ def main() -> int:
     print(f"API: {API_BASE}")
 
     print("1. Health check...")
-    health = _request("GET", "/health")
+    health = _request("GET", "/health/ready")
     assert isinstance(health, dict)
     print(health.get("status"))
 

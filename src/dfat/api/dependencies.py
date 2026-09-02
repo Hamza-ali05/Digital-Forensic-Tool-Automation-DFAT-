@@ -22,6 +22,7 @@ from dfat.auth.dependencies import (
 from dfat.auth.rbac import PermissionChecker, require_permission, require_role
 from dfat.database.repositories.ai_analysis_repo import SQLAlchemyAIAnalysisRepository
 from dfat.database.repositories.artefact_repo import SQLAlchemyArtefactRepository
+from dfat.database.repositories.report_repo import SQLAlchemyReportRepository
 from dfat.evaluation.benchmark.comparator import BenchmarkComparator
 from dfat.evidence_management.custody_service import ChainOfCustodyService
 from dfat.forensic_engine.acquisition.image_handler import DiskImageHandler
@@ -202,6 +203,11 @@ def get_artefact_repository(request: Request) -> SQLAlchemyArtefactRepository:
     return _container(request).repositories.artefact_repo()
 
 
+def get_db_report_repository(request: Request) -> SQLAlchemyReportRepository:
+    """Provide the SQLAlchemy forensic report repository."""
+    return _container(request).repositories.report_repo()
+
+
 def get_ai_analysis_repo(request: Request) -> SQLAlchemyAIAnalysisRepository:
     """Provide the AI analysis record repository."""
     return _container(request).repositories.ai_analysis_repo()
@@ -294,6 +300,7 @@ __all__ = [
     "get_ai_response_cache",
     "get_analysis_service",
     "get_artefact_repository",
+    "get_db_report_repository",
     "get_audit_logger",
     "get_audit_service",
     "get_benchmark_comparator",

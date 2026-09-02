@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Badge,
   Button,
@@ -70,6 +70,7 @@ function sumCollectionCounts(collections = {}) {
  * Knowledge base dashboard with vector, graph, and IOC statistics plus search.
  */
 export default function KnowledgeDashboard() {
+  const mountedRef = useRef(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
@@ -79,7 +80,15 @@ export default function KnowledgeDashboard() {
   const [queryError, setQueryError] = useState(null);
   const [queryResult, setQueryResult] = useState(null);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const load = useCallback(async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     setError(null);
     try {
@@ -87,12 +96,14 @@ export default function KnowledgeDashboard() {
         knowledgeService.getStats(),
         knowledgeService.getGraphStats(),
       ]);
+      if (!mountedRef.current) return;
       setStats(statsResult);
       setGraphStats(graphResult);
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -111,12 +122,14 @@ export default function KnowledgeDashboard() {
         query: trimmed,
         max_results: 10,
       });
+      if (!mountedRef.current) return;
       setQueryResult(result);
     } catch (err) {
+      if (!mountedRef.current) return;
       setQueryError(err);
       setQueryResult(null);
     } finally {
-      setQueryBusy(false);
+      if (mountedRef.current) setQueryBusy(false);
     }
   };
 

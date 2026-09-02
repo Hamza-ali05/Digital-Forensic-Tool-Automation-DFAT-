@@ -36,11 +36,16 @@ class ReportResponse(APIModel):
     """Forensic report summary response."""
 
     report_id: str
+    case_id: str = ""
     case_name: str
+    evidence_id: str = ""
+    evidence_name: str = ""
     json_report_url: str
     narrative_report_url: str
     generated_at: datetime
     pipeline_duration_seconds: float
+    llm_model_used: Optional[str] = None
+    use_fallback_analyzer: bool = False
 
 
 class IntegrityVerifyResponse(APIModel):
@@ -102,6 +107,34 @@ class UsabilityDeleteResponse(APIModel):
     """Ethics data-destruction acknowledgement."""
 
     deleted_count: int
+
+
+class ManualBaselineResponse(APIModel):
+    """Stored manual time-to-triage baseline."""
+
+    baseline_ttt_seconds: float
+    label: str
+    updated_at: datetime
+
+
+class LLMQualityResponse(APIModel):
+    """Automated investigative-summary quality scores (RQ2)."""
+
+    evaluation_id: str
+    dataset_name: str = ""
+    summary_source: str
+    citation_coverage: float
+    cited_identifiers: int
+    expected_identifiers: int
+    hallucination_risk: str
+    hallucinated_ids: list[str] = Field(default_factory=list)
+    fabricated_terms: list[str] = Field(default_factory=list)
+    uncertain_tag_count: int = 0
+    section_completeness: float
+    usefulness_proxy: float
+    accuracy_proxy: float
+    evaluated_at: datetime
+    notes: list[str] = Field(default_factory=list)
 
 
 class ErrorResponse(APIModel):

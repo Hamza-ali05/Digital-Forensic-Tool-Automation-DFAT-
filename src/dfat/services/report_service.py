@@ -84,6 +84,10 @@ class ReportService:
         """List all forensic reports."""
         return await self._report_repo.list_all()
 
+    async def list_report_summaries(self) -> list:
+        """List lightweight report rows for list views."""
+        return await self._report_repo.list_summaries()
+
     async def get_reports_by_case(self, case_id: str) -> list[ForensicReport]:
         """List reports associated with a case ID."""
         return await self._report_repo.get_by_case(case_id)

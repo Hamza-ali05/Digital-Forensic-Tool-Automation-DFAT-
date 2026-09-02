@@ -21,7 +21,7 @@ def test_admin_can_access_all_endpoints(admin_client: AuthedClient) -> None:
     assert admin_client.get("/api/v1/evidence/inventory").status_code == 200
     assert admin_client.get("/api/v1/pipeline/jobs").status_code == 200
     assert admin_client.get("/api/v1/ai/stats").status_code == 200
-    assert admin_client.get("/api/v1/health").status_code == 200
+    assert admin_client.get("/api/v1/health/ready").status_code == 200
 
 
 def test_investigator_can_create_cases(
@@ -105,12 +105,12 @@ def test_unauthenticated_gets_401_on_protected(
     assert response.status_code in (401, 403)
 
 
-def test_unauthenticated_can_access_health(
+def test_unauthenticated_can_access_readiness(
     authenticated_client: TestClient,
 ) -> None:
-    response = authenticated_client.get("/api/v1/health")
+    response = authenticated_client.get("/api/v1/health/ready")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    assert response.json()["status"] in {"ready", "degraded"}
 
 
 def test_unauthenticated_can_access_questionnaire(

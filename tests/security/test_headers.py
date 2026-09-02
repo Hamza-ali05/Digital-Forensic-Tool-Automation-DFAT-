@@ -20,7 +20,7 @@ _REQUIRED_HEADERS = [
 
 def test_security_headers_present_on_all_responses(app_client: TestClient) -> None:
     """OWASP headers are attached to success and error responses."""
-    for path, expected in (("/api/v1/health", 200), ("/api/v1/users/me", 401)):
+    for path, expected in (("/api/v1/health/ready", 200), ("/api/v1/users/me", 401)):
         response = app_client.get(path)
         assert response.status_code == expected, path
         for header in _REQUIRED_HEADERS:
@@ -30,11 +30,11 @@ def test_security_headers_present_on_all_responses(app_client: TestClient) -> No
 def test_cors_rejects_unauthorized_origins(app_client: TestClient) -> None:
     """Disallowed Origin values are not reflected in CORS allow-origin."""
     evil = "https://evil.example"
-    response = app_client.get("/api/v1/health", headers={"Origin": evil})
+    response = app_client.get("/api/v1/health/ready", headers={"Origin": evil})
     allowed = response.headers.get("access-control-allow-origin")
     assert allowed != evil
     preflight = app_client.options(
-        "/api/v1/health",
+        "/api/v1/health/ready",
         headers={
             "Origin": evil,
             "Access-Control-Request-Method": "GET",

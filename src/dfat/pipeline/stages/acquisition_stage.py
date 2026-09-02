@@ -14,6 +14,7 @@ from dfat.evidence_management.custody_service import ChainOfCustodyService
 from dfat.evidence_management.exceptions import InvalidEvidenceTransitionError
 from dfat.evidence_management.models import HashSet
 from dfat.pipeline.evidence_loader import EvidenceLoader, LoadedEvidence
+from dfat.pipeline.error_messages import pipeline_error_message
 from dfat.pipeline.progress_tracker import ProgressNotFoundError, ProgressTracker
 from dfat.pipeline.stage_interface import IPipelineStage, PipelineContext
 from dfat.services.audit_service import AuditService
@@ -197,14 +198,14 @@ class AcquisitionStage(IPipelineStage):
             )
         except Exception as exc:  # noqa: BLE001 — stage-level failure
             duration = time.perf_counter() - started
-            errors.append(str(exc))
+            errors.append(pipeline_error_message(exc))
             logger.exception("Acquisition stage failed for job %s", job.job_id)
             await self._audit.log_action(
                 stage=self.stage_name,
                 action="ACQUISITION_STAGE_FAILED",
                 evidence_id=evidence_id,
                 user_id=user_id,
-                details={"job_id": job.job_id, "error": str(exc)},
+                details={"job_id": job.job_id, "error": pipeline_error_message(exc)},
             )
             return StageResult(
                 stage=self.stage_name,

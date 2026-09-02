@@ -40,12 +40,37 @@ function findReportJobs(jobs, evidenceId) {
 }
 
 /**
- * Load ranked artefacts for evidence via the latest completed pipeline report.
+ * Load ranked artefacts for evidence via report JSON or completed pipeline jobs.
  */
 export async function loadArtefactsForEvidence(evidenceId) {
   if (!evidenceId) {
     return { artefacts: [], reportMeta: null };
   }
+
+  try {
+    const reports = await reportsService.list();
+    const list = Array.isArray(reports) ? reports : [];
+    const byEvidence = list.find(
+      (item) => String(item.evidence_id) === String(evidenceId)
+    );
+    if (byEvidence?.report_id) {
+      const json = await reportsService.getJson(byEvidence.report_id);
+      const artefacts = extractArtefacts(json);
+      if (artefacts.length) {
+        return {
+          artefacts,
+          reportMeta: {
+            reportId: byEvidence.report_id,
+            evidenceId,
+            summaryStatistics: json?.summary_statistics || null,
+          },
+        };
+      }
+    }
+  } catch {
+    // Fall back to pipeline-linked reports below.
+  }
+
   const jobs = await pipelineService.listJobs();
   const candidates = findReportJobs(jobs, evidenceId);
   for (const job of candidates) {

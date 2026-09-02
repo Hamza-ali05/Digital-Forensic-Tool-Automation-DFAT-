@@ -77,6 +77,27 @@ describe("Questionnaire", () => {
     expect(evaluationService.submitQuestionnaire).not.toHaveBeenCalled();
   });
 
+  test("test_consent_required_before_submit", async () => {
+    render(
+      <MemoryRouter>
+        <Questionnaire />
+      </MemoryRouter>
+    );
+    await wait(() => {
+      expect(screen.getByText("Useful?")).toBeInTheDocument();
+    });
+    ["Q1", "Q2", "Q3", "Q4", "Q5"].forEach((id) => {
+      fireEvent.click(
+        screen.getByLabelText(new RegExp(`${id}: 3 Neutral`, "i"))
+      );
+    });
+    fireEvent.click(screen.getByText(/Submit anonymous response/i));
+    await wait(() => {
+      expect(screen.getByText(/Consent is required before submitting/i)).toBeInTheDocument();
+    });
+    expect(evaluationService.submitQuestionnaire).not.toHaveBeenCalled();
+  });
+
   test("test_submission_shows_thank_you", async () => {
     evaluationService.submitQuestionnaire.mockResolvedValue({
       participant_id: "part-123",
@@ -96,6 +117,9 @@ describe("Questionnaire", () => {
       );
     });
 
+    fireEvent.click(
+      screen.getByLabelText(/I have read the participant information/i)
+    );
     fireEvent.click(screen.getByText(/Submit anonymous response/i));
     await wait(() => {
       expect(screen.getByText(/Thank you/i)).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import SimpleBar from "simplebar-react";
 import { Link, useLocation } from "react-router-dom";
 import { CSSTransition } from "react-transition-group";
@@ -18,7 +18,6 @@ import {
   faUsers,
   faUserCircle,
   faClipboardList,
-  faQuestionCircle,
   faTimes,
   faSignOutAlt,
   faUserPlus,
@@ -33,12 +32,15 @@ import {
   faServer,
   faListUl,
   faThLarge,
+  faChevronDown,
+  faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
-import { Badge, Button, Nav, Navbar } from "@themesberg/react-bootstrap";
+import { Button, Nav, Navbar } from "@themesberg/react-bootstrap";
 
 import config from "config";
 import { API_ENDPOINTS } from "config/api.config";
 import useAuth from "hooks/useAuth";
+import usePageVisibility from "hooks/usePageVisibility";
 import usePermission from "hooks/usePermission";
 import { apiGet } from "services/api";
 import { Routes } from "routes";
@@ -97,6 +99,64 @@ function isNavActive(pathname, link) {
   return pathname === link || pathname.startsWith(`${link}/`);
 }
 
+function isAiGroupActive(pathname) {
+  return (
+    isNavActive(pathname, Routes.AIAnalysis.path) ||
+    pathname === Routes.ArtefactsTimeline.path ||
+    pathname === Routes.ArtefactsIOCs.path ||
+    pathname === Routes.AISummary.path
+  );
+}
+
+function isReportsGroupActive(pathname) {
+  return (
+    isNavActive(pathname, Routes.Reports.path) ||
+    pathname === Routes.JSONViewer.path
+  );
+}
+
+function isEvaluationGroupActive(pathname) {
+  return (
+    isNavActive(pathname, Routes.Evaluation.path) ||
+    pathname === Routes.EvaluationBenchmark.path ||
+    pathname === Routes.EvaluationBenchmarkHistory.path ||
+    pathname === Routes.EvaluationPerformance.path ||
+    pathname === Routes.EvaluationUsability.path ||
+    pathname === Routes.EvaluationLlmSummary.path
+  );
+}
+
+function isSettingsGroupActive(pathname) {
+  return (
+    pathname === Routes.Profile.path ||
+    pathname === Routes.Register.path ||
+    pathname === Routes.SettingsUsers.path ||
+    pathname === Routes.SettingsAudit.path ||
+    pathname === Routes.AdminSystem.path ||
+    pathname === Routes.AdminTasks.path ||
+    pathname === Routes.AdminCapabilities.path
+  );
+}
+
+function isIntelligenceGroupActive(pathname) {
+  return (
+    isNavActive(pathname, Routes.Datasets.path) ||
+    isNavActive(pathname, Routes.MLModels.path) ||
+    isNavActive(pathname, Routes.Knowledge.path) ||
+    isNavActive(pathname, Routes.ThreatIntel.path)
+  );
+}
+
+function getInitialExpandedGroups(pathname) {
+  return {
+    ai: isAiGroupActive(pathname),
+    reports: isReportsGroupActive(pathname),
+    evaluation: isEvaluationGroupActive(pathname),
+    intelligence: isIntelligenceGroupActive(pathname),
+    settings: isSettingsGroupActive(pathname),
+  };
+}
+
 /**
  * DFAT forensic navigation sidebar with role-gated admin links and health.
  */
@@ -110,75 +170,133 @@ export default function Sidebar({ show = false, onClose, onToggle }) {
     role === "admin" || role === "investigator" || role === "analyst";
 
   const [healthOk, setHealthOk] = useState(null);
-  const [activeCaseCount, setActiveCaseCount] = useState(0);
-  const [runningJobCount, setRunningJobCount] = useState(0);
+  const [expandedGroups, setExpandedGroups] = useState(() =>
+    getInitialExpandedGroups(pathname)
+  );
+  const pageVisible = usePageVisibility();
 
   useEffect(() => {
+    setExpandedGroups((prev) => ({
+      ai: prev.ai || isAiGroupActive(pathname),
+      reports: prev.reports || isReportsGroupActive(pathname),
+      evaluation: prev.evaluation || isEvaluationGroupActive(pathname),
+      intelligence: prev.intelligence || isIntelligenceGroupActive(pathname),
+      settings: prev.settings || isSettingsGroupActive(pathname),
+    }));
+  }, [pathname]);
+
+  const toggleGroup = useCallback((groupId) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (!pageVisible) return undefined;
+
     let cancelled = false;
 
-    async function loadIndicators() {
+    async function loadHealth() {
       try {
-        await apiGet(API_ENDPOINTS.HEALTH.CHECK);
+        await apiGet(API_ENDPOINTS.HEALTH.READY);
         if (!cancelled) setHealthOk(true);
       } catch {
         if (!cancelled) setHealthOk(false);
       }
-
-      try {
-        const { data } = await apiGet(API_ENDPOINTS.CASES.MINE);
-        const list = Array.isArray(data) ? data : data?.items || data?.cases || [];
-        const active = list.filter((c) => {
-          const status = (c.status || "").toLowerCase();
-          return status === "active" || status === "open" || status === "under_review";
-        }).length;
-        if (!cancelled) setActiveCaseCount(active || list.length || 0);
-      } catch {
-        if (!cancelled) setActiveCaseCount(0);
-      }
-
-      try {
-        const { data } = await apiGet(API_ENDPOINTS.PIPELINE.JOBS);
-        const list = Array.isArray(data) ? data : data?.items || data?.jobs || [];
-        const running = list.filter((job) => {
-          const status = (job.status || "").toLowerCase();
-          return status === "running" || status === "in_progress" || status === "queued";
-        }).length;
-        if (!cancelled) setRunningJobCount(running);
-      } catch {
-        if (!cancelled) setRunningJobCount(0);
-      }
     }
 
-    loadIndicators();
-    const interval = window.setInterval(loadIndicators, config.pollingInterval || 15000);
+    loadHealth();
+    const interval = window.setInterval(loadHealth, config.pollingInterval || 30000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [pageVisible]);
 
   const showClass = show ? "show" : "";
 
-  const NavItem = ({ title, link, icon, badge }) => {
+  const NavItem = ({ title, link, icon }) => {
     const active = isNavActive(pathname, link);
     return (
       <Nav.Item className={active ? "active" : ""} onClick={onClose}>
-        <Nav.Link as={Link} to={link} className="d-flex align-items-center justify-content-between">
-          <span className="d-flex align-items-center">
-            {icon ? (
-              <span className="sidebar-icon">
-                <FontAwesomeIcon icon={icon} aria-hidden="true" />
-              </span>
-            ) : null}
-            <span className="sidebar-text">{title}</span>
-          </span>
-          {badge > 0 ? (
-            <Badge bg="secondary" className="badge-md">
-              {badge}
-            </Badge>
+        <Nav.Link as={Link} to={link} className="d-flex align-items-center">
+          {icon ? (
+            <span className="sidebar-icon">
+              <FontAwesomeIcon icon={icon} aria-hidden="true" />
+            </span>
           ) : null}
+          <span className="sidebar-text">{title}</span>
         </Nav.Link>
       </Nav.Item>
+    );
+  };
+
+  const NavSubItem = ({ title, link, icon }) => {
+    const active = isNavActive(pathname, link);
+    return (
+      <Nav.Item className={`ms-3 ${active ? "active" : ""}`} onClick={onClose}>
+        <Nav.Link as={Link} to={link} className="d-flex align-items-center py-1">
+          {icon ? (
+            <span className="sidebar-icon">
+              <FontAwesomeIcon icon={icon} aria-hidden="true" />
+            </span>
+          ) : null}
+          <span className="sidebar-text">{title}</span>
+        </Nav.Link>
+      </Nav.Item>
+    );
+  };
+
+  const NavGroup = ({ groupId, title, link, icon, children, isGroupActive }) => {
+    const expanded = expandedGroups[groupId];
+    const active = isGroupActive(pathname);
+
+    return (
+      <>
+        <Nav.Item className={active ? "active" : ""}>
+          <div className="d-flex align-items-center sidebar-nav-group">
+            <Nav.Link
+              as={Link}
+              to={link}
+              className="d-flex align-items-center flex-grow-1 pe-0"
+              onClick={() => {
+                setExpandedGroups((prev) => ({ ...prev, [groupId]: true }));
+                if (onClose) onClose();
+              }}
+            >
+              {icon ? (
+                <span className="sidebar-icon">
+                  <FontAwesomeIcon icon={icon} aria-hidden="true" />
+                </span>
+              ) : null}
+              <span className="sidebar-text">{title}</span>
+            </Nav.Link>
+            <button
+              type="button"
+              className="sidebar-nav-toggle btn btn-link text-white p-0 ms-1 me-2"
+              aria-expanded={expanded}
+              aria-label={`${expanded ? "Collapse" : "Expand"} ${title}`}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleGroup(groupId);
+              }}
+            >
+              <FontAwesomeIcon
+                icon={expanded ? faChevronDown : faChevronRight}
+                className="sidebar-chevron"
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+        </Nav.Item>
+        {expanded
+          ? React.Children.map(children, (child) =>
+              React.isValidElement(child) ? React.cloneElement(child, { key: child.props.link }) : child
+            )
+          : null}
+      </>
     );
   };
 
@@ -269,7 +387,6 @@ export default function Sidebar({ show = false, onClose, onToggle }) {
                 title="Cases"
                 link={Routes.Cases.path}
                 icon={faFolderOpen}
-                badge={activeCaseCount}
               />
               <NavItem
                 title="Evidence"
@@ -285,212 +402,160 @@ export default function Sidebar({ show = false, onClose, onToggle }) {
                 title="Pipeline"
                 link={Routes.Pipeline.path}
                 icon={faPlayCircle}
-                badge={runningJobCount}
               />
-              <NavItem
+              <NavGroup
+                groupId="ai"
                 title="AI Analysis"
                 link={Routes.AIAnalysis.path}
                 icon={faMicrochip}
-              />
-              <Nav.Item className="ms-3">
-                <Nav.Link
-                  as={Link}
-                  to={Routes.ArtefactsTimeline.path}
-                  className={`d-flex align-items-center py-1 ${
-                    pathname === Routes.ArtefactsTimeline.path ? "active" : ""
-                  }`}
-                  onClick={onClose}
-                >
-                  <span className="sidebar-icon">
-                    <FontAwesomeIcon icon={faClock} aria-hidden="true" />{" "}
-                  </span>
-                  <span className="sidebar-text">Timeline</span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item className="ms-3">
-                <Nav.Link
-                  as={Link}
-                  to={Routes.ArtefactsIOCs.path}
-                  className={`d-flex align-items-center py-1 ${
-                    pathname === Routes.ArtefactsIOCs.path ? "active" : ""
-                  }`}
-                  onClick={onClose}
-                >
-                  <span className="sidebar-icon">
-                    <FontAwesomeIcon icon={faBug} aria-hidden="true" />{" "}
-                  </span>
-                  <span className="sidebar-text">IOCs</span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item className="ms-3">
-                <Nav.Link
-                  as={Link}
-                  to={Routes.AISummary.path}
-                  className={`d-flex align-items-center py-1 ${
-                    pathname === Routes.AISummary.path ? "active" : ""
-                  }`}
-                  onClick={onClose}
-                >
-                  <span className="sidebar-icon">
-                    <FontAwesomeIcon icon={faAlignLeft} aria-hidden="true" />{" "}
-                  </span>
-                  <span className="sidebar-text">Summary</span>
-                </Nav.Link>
-              </Nav.Item>
-              <NavItem title="Reports" link={Routes.Reports.path} icon={faFileAlt} />
-              <Nav.Item className="ms-3">
-                <Nav.Link
-                  as={Link}
-                  to={Routes.JSONViewer.path}
-                  className={`d-flex align-items-center py-1 ${
-                    pathname === Routes.JSONViewer.path ? "active" : ""
-                  }`}
-                  onClick={onClose}
-                >
-                  <span className="sidebar-icon">
-                    <FontAwesomeIcon icon={faCode} aria-hidden="true" />{" "}
-                  </span>
-                  <span className="sidebar-text">JSON Artefacts</span>
-                </Nav.Link>
-              </Nav.Item>
-              <NavItem
+                isGroupActive={isAiGroupActive}
+              >
+                <NavSubItem
+                  title="Timeline"
+                  link={Routes.ArtefactsTimeline.path}
+                  icon={faClock}
+                />
+                <NavSubItem
+                  title="IOCs"
+                  link={Routes.ArtefactsIOCs.path}
+                  icon={faBug}
+                />
+                <NavSubItem
+                  title="Summary"
+                  link={Routes.AISummary.path}
+                  icon={faAlignLeft}
+                />
+              </NavGroup>
+              <NavGroup
+                groupId="reports"
+                title="Reports"
+                link={Routes.Reports.path}
+                icon={faFileAlt}
+                isGroupActive={isReportsGroupActive}
+              >
+                <NavSubItem
+                  title="JSON Artefacts"
+                  link={Routes.JSONViewer.path}
+                  icon={faCode}
+                />
+              </NavGroup>
+              <NavGroup
+                groupId="evaluation"
                 title="Evaluation"
                 link={Routes.Evaluation.path}
                 icon={faChartBar}
-              />
-              <Nav.Item className="ms-3">
-                <Nav.Link
-                  as={Link}
-                  to={Routes.EvaluationBenchmark.path}
-                  className={`d-flex align-items-center py-1 ${
-                    pathname === Routes.EvaluationBenchmark.path ? "active" : ""
-                  }`}
-                  onClick={onClose}
-                >
-                  <span className="sidebar-icon">
-                    <FontAwesomeIcon icon={faChartLine} aria-hidden="true" />{" "}
-                  </span>
-                  <span className="sidebar-text">Benchmark</span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item className="ms-3">
-                <Nav.Link
-                  as={Link}
-                  to={Routes.EvaluationBenchmarkHistory.path}
-                  className={`d-flex align-items-center py-1 ${
-                    pathname === Routes.EvaluationBenchmarkHistory.path
-                      ? "active"
-                      : ""
-                  }`}
-                  onClick={onClose}
-                >
-                  <span className="sidebar-icon">
-                    <FontAwesomeIcon icon={faHistory} aria-hidden="true" />{" "}
-                  </span>
-                  <span className="sidebar-text">History</span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item className="ms-3">
-                <Nav.Link
-                  as={Link}
-                  to={Routes.EvaluationPerformance.path}
-                  className={`d-flex align-items-center py-1 ${
-                    pathname === Routes.EvaluationPerformance.path ? "active" : ""
-                  }`}
-                  onClick={onClose}
-                >
-                  <span className="sidebar-icon">
-                    <FontAwesomeIcon icon={faTachometerAlt} aria-hidden="true" />{" "}
-                  </span>
-                  <span className="sidebar-text">Performance</span>
-                </Nav.Link>
-              </Nav.Item>
+                isGroupActive={isEvaluationGroupActive}
+              >
+                <NavSubItem
+                  title="Benchmark"
+                  link={Routes.EvaluationBenchmark.path}
+                  icon={faChartLine}
+                />
+                <NavSubItem
+                  title="History"
+                  link={Routes.EvaluationBenchmarkHistory.path}
+                  icon={faHistory}
+                />
+                <NavSubItem
+                  title="Performance"
+                  link={Routes.EvaluationPerformance.path}
+                  icon={faTachometerAlt}
+                />
+                <NavSubItem
+                  title="Usability"
+                  link={Routes.EvaluationUsability.path}
+                  icon={faClipboardList}
+                />
+                <NavSubItem
+                  title="LLM summaries"
+                  link={Routes.EvaluationLlmSummary.path}
+                  icon={faMicrochip}
+                />
+              </NavGroup>
 
               {canIntelligence ? (
-                <>
-                  <Nav.Item className="my-2">
-                    <hr className="border-light opacity-25 my-2" />
-                    <small className="text-uppercase text-muted px-3">
-                      Intelligence
-                    </small>
-                  </Nav.Item>
-                  <NavItem
+                <NavGroup
+                  groupId="intelligence"
+                  title="Intelligence"
+                  link={Routes.Datasets.path}
+                  icon={faBrain}
+                  isGroupActive={isIntelligenceGroupActive}
+                >
+                  <NavSubItem
                     title="Datasets"
                     link={Routes.Datasets.path}
                     icon={faDatabase}
                   />
-                  <NavItem
+                  <NavSubItem
                     title="Machine Learning"
                     link={Routes.MLModels.path}
                     icon={faBrain}
                   />
-                  <NavItem
+                  <NavSubItem
                     title="Knowledge Base"
                     link={Routes.Knowledge.path}
                     icon={faBook}
                   />
-                  <NavItem
+                  <NavSubItem
                     title="Threat Intel"
                     link={Routes.ThreatIntel.path}
                     icon={faShieldVirus}
                   />
-                </>
+                </NavGroup>
               ) : null}
 
-              {canManageUsers || canRegister ? (
-                <>
-                  <Nav.Item className="my-2">
-                    <hr className="border-light opacity-25 my-2" />
-                  </Nav.Item>
-                  <NavItem title="Profile" link={Routes.Profile.path} icon={faUserCircle} />
-                  {canRegister ? (
-                    <NavItem
-                      title="Register user"
-                      link={Routes.Register.path}
-                      icon={faUserPlus}
+              <Nav.Item className="my-2">
+                <hr className="border-light opacity-25 my-2" />
+              </Nav.Item>
+              <NavGroup
+                groupId="settings"
+                title="Settings"
+                link={Routes.Profile.path}
+                icon={faCog}
+                isGroupActive={isSettingsGroupActive}
+              >
+                <NavSubItem
+                  title="Profile"
+                  link={Routes.Profile.path}
+                  icon={faUserCircle}
+                />
+                {canRegister ? (
+                  <NavSubItem
+                    title="Register user"
+                    link={Routes.Register.path}
+                    icon={faUserPlus}
+                  />
+                ) : null}
+                {canManageUsers ? (
+                  <>
+                    <NavSubItem
+                      title="User Management"
+                      link={Routes.SettingsUsers.path}
+                      icon={faUsers}
                     />
-                  ) : null}
-                  {canManageUsers ? (
-                    <>
-                      <NavItem title="Settings" link={Routes.Settings.path} icon={faCog} />
-                      <NavItem
-                        title="User Management"
-                        link={Routes.SettingsUsers.path}
-                        icon={faUsers}
-                      />
-                      <NavItem
-                        title="Audit Logs"
-                        link={Routes.SettingsAudit.path}
-                        icon={faClipboardList}
-                      />
-                      <NavItem
-                        title="System Status"
-                        link={Routes.AdminSystem.path}
-                        icon={faServer}
-                      />
-                      <NavItem
-                        title="Task Monitor"
-                        link={Routes.AdminTasks.path}
-                        icon={faListUl}
-                      />
-                      <NavItem
-                        title="Capabilities"
-                        link={Routes.AdminCapabilities.path}
-                        icon={faThLarge}
-                      />
-                    </>
-                  ) : null}
-                  <NavItem title="Help" link={Routes.Help.path} icon={faQuestionCircle} />
-                </>
-              ) : (
-                <>
-                  <Nav.Item className="my-2">
-                    <hr className="border-light opacity-25 my-2" />
-                  </Nav.Item>
-                  <NavItem title="Profile" link={Routes.Profile.path} icon={faUserCircle} />
-                  <NavItem title="Help" link={Routes.Help.path} icon={faQuestionCircle} />
-                </>
-              )}
+                    <NavSubItem
+                      title="Audit Logs"
+                      link={Routes.SettingsAudit.path}
+                      icon={faClipboardList}
+                    />
+                    <NavSubItem
+                      title="System Status"
+                      link={Routes.AdminSystem.path}
+                      icon={faServer}
+                    />
+                    <NavSubItem
+                      title="Task Monitor"
+                      link={Routes.AdminTasks.path}
+                      icon={faListUl}
+                    />
+                    <NavSubItem
+                      title="Capabilities"
+                      link={Routes.AdminCapabilities.path}
+                      icon={faThLarge}
+                    />
+                  </>
+                ) : null}
+              </NavGroup>
             </Nav>
 
             <div className="sidebar-footer mt-auto pt-3 pb-4 small">

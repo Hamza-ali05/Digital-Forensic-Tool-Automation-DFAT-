@@ -41,7 +41,7 @@ module.exports = defineConfig({
       command:
         "uvicorn dfat.app:create_app --factory --host 127.0.0.1 --port 8000",
       cwd: repoRoot,
-      url: "http://127.0.0.1:8000/api/v1/health",
+      url: "http://127.0.0.1:8000/api/v1/health/ready",
       reuseExistingServer: reuseServer,
       timeout: 120_000,
       env: {

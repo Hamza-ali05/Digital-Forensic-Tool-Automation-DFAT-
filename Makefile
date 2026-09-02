@@ -201,6 +201,9 @@ dev-start:
 seed-dev:
 	python scripts/seed_dev_data.py
 
+seed-demo:
+	python scripts/seed_demo_data.py
+
 smoke-test:
 	@bash scripts/integration_smoke_test.sh 2>/dev/null || python scripts/integration_smoke_test.py
 
@@ -215,7 +218,7 @@ dev-setup: install install-dev frontend-install db-init
 			curl -sf http://127.0.0.1:8000/api/v1/health >/dev/null && break; \
 			sleep 1; \
 		done; \
-		python scripts/seed_dev_data.py; \
+		python scripts/seed_demo_data.py; \
 		kill $$pid; \
 		wait $$pid 2>/dev/null || true'
 	@echo "Seed complete. Starting backend + frontend..."

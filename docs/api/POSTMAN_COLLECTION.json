@@ -109,11 +109,6 @@
       "name": "Health",
       "item": [
         {
-          "name": "Liveness",
-          "request": {"method": "GET", "url": "{{base_url}}/health", "auth": {"type": "noauth"}},
-          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]}}]
-        },
-        {
           "name": "Readiness",
           "request": {"method": "GET", "url": "{{base_url}}/health/ready", "auth": {"type": "noauth"}},
           "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]}}]

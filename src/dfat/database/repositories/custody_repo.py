@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from dfat.case_management.enums import CustodyAction
 from dfat.database.exceptions import DatabaseError
 from dfat.database.mappers import custody_domain_to_orm, custody_orm_to_domain
 from dfat.database.models.custody_orm import ChainOfCustodyORM
@@ -109,6 +110,59 @@ class CustodyRepository:
                     custody_orm_to_domain(row)
                 )
             return grouped
+
+    async def get_chain_summaries(
+        self,
+        evidence_ids: list[str],
+    ) -> dict[str, dict[str, object]]:
+        """Return custody counts and last verification timestamps per evidence."""
+        unique_ids = list(dict.fromkeys(evidence_ids))
+        if not unique_ids:
+            return {}
+
+        async with self._session_factory() as session:
+            try:
+                count_result = await session.execute(
+                    select(
+                        ChainOfCustodyORM.evidence_id,
+                        func.count().label("action_count"),
+                    )
+                    .where(ChainOfCustodyORM.evidence_id.in_(unique_ids))
+                    .group_by(ChainOfCustodyORM.evidence_id)
+                )
+                counts = {
+                    str(row.evidence_id): int(row.action_count)
+                    for row in count_result.all()
+                }
+
+                accessed_result = await session.execute(
+                    select(
+                        ChainOfCustodyORM.evidence_id,
+                        func.max(ChainOfCustodyORM.timestamp).label("last_accessed"),
+                    )
+                    .where(
+                        ChainOfCustodyORM.evidence_id.in_(unique_ids),
+                        ChainOfCustodyORM.action == CustodyAction.ACCESSED.value,
+                    )
+                    .group_by(ChainOfCustodyORM.evidence_id)
+                )
+                last_verified = {
+                    str(row.evidence_id): row.last_accessed
+                    for row in accessed_result.all()
+                }
+            except SQLAlchemyError as exc:
+                raise DatabaseError(
+                    "Failed to load custody summaries",
+                    context={"evidence_ids": unique_ids, "error": str(exc)},
+                ) from exc
+
+        return {
+            evidence_id: {
+                "custody_actions_count": counts.get(evidence_id, 0),
+                "last_verified_at": last_verified.get(evidence_id),
+            }
+            for evidence_id in unique_ids
+        }
 
     async def get_latest(self, evidence_id: str) -> ChainOfCustodyRecord | None:
         """Return the latest custody record for an evidence item."""

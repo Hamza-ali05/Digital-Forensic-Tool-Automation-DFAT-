@@ -292,7 +292,7 @@ def _test_client():
 def check_health_endpoint(report: ReadinessReport) -> None:
     try:
         client = _test_client()
-        response = client.get("/api/v1/health")
+        response = client.get("/api/v1/health/ready")
         if response.status_code == 200 and response.json().get("status") == "healthy":
             report.add("Health endpoint returns healthy", "PASS")
         else:

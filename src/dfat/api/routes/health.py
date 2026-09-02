@@ -32,17 +32,6 @@ _TABLE_COUNT_QUERIES = {
 }
 
 
-class HealthResponse(APIModel):
-    """Basic liveness response."""
-
-    status: str = "healthy"
-    version: str
-    timestamp: datetime
-    system_readiness: Optional[str] = None
-    degraded_services: list[str] = Field(default_factory=list)
-    available_capabilities: list[str] = Field(default_factory=list)
-
-
 class ReadinessResponse(APIModel):
     """Readiness probe with component checks."""
 
@@ -96,20 +85,6 @@ def _service_status_map(request: Request) -> dict[str, str]:
 async def _aggregated_health(request: Request) -> AggregatedHealth:
     """Run the monitoring aggregator against the request DI container."""
     return await HealthAggregator.from_container(_container(request)).collect()
-
-
-@router.get("", response_model=HealthResponse)
-async def health(request: Request) -> HealthResponse:
-    """Basic liveness check (no authentication)."""
-    report = _startup_report(request)
-    return HealthResponse(
-        status="healthy",
-        version=__version__,
-        timestamp=datetime.now(UTC),
-        system_readiness=_system_readiness(request),
-        degraded_services=list(report.degraded_services) if report else [],
-        available_capabilities=list(report.available_capabilities) if report else [],
-    )
 
 
 @router.get("/ready", response_model=ReadinessResponse)

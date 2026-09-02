@@ -15,14 +15,14 @@ describe("api client", () => {
     let requestId = null;
 
     server.use(
-      rest.get(`${API}/health`, (req, res, ctx) => {
+      rest.get(`${API}/health/ready`, (req, res, ctx) => {
         authHeader = req.headers.get("Authorization");
         requestId = req.headers.get("X-Request-ID");
-        return res(ctx.status(200), ctx.json({ status: "healthy" }));
+        return res(ctx.status(200), ctx.json({ status: "ready", checks: {} }));
       })
     );
 
-    await apiClient.get("/health");
+    await apiClient.get("/health/ready");
 
     expect(authHeader).toBe("Bearer jwt-test-token");
     expect(requestId).toBeTruthy();

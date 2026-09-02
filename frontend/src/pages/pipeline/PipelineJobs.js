@@ -6,24 +6,31 @@ import {
   Col,
   Container,
   Form,
+  Pagination,
   ProgressBar,
   Row,
+  Spinner,
 } from "@themesberg/react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBan,
+  faClock,
   faEye,
+  faFolderOpen,
+  faLayerGroup,
   faPlay,
   faPlus,
+  faStopwatch,
 } from "@fortawesome/free-solid-svg-icons";
 import Datetime from "react-datetime";
 import moment from "moment-timezone";
 
 import PageHeader from "components/common/PageHeader";
-import DataTable from "components/common/DataTable";
 import StatusBadge from "components/common/StatusBadge";
 import ApiErrorDisplay from "components/common/ApiErrorDisplay";
 import ConfirmDialog from "components/common/ConfirmDialog";
+import EmptyState from "components/common/EmptyState";
+import SkeletonLoader from "components/common/SkeletonLoader";
 import PipelineProgressBar from "components/forensic/PipelineProgressBar";
 import { JOB_STATUS } from "utils/constants";
 import {
@@ -35,13 +42,20 @@ import {
   humanizeFileName,
   humanizeLabel,
 } from "utils/formatters";
+import config from "config";
 import usePermission from "hooks/usePermission";
 import useNotification from "hooks/useNotification";
 import useConfirmDialog from "hooks/useConfirmDialog";
 import usePolling from "hooks/usePolling";
 import pipelineService from "services/pipeline.service";
-import casesService from "services/cases.service";
-import evidenceService from "services/evidence.service";
+import {
+  buildCaseMap,
+  buildEvidenceMap,
+  fetchCasesCached,
+  fetchEvidenceInventoryCached,
+  fetchPipelineJobsCached,
+  normaliseCasesList,
+} from "services/referenceData";
 import { Routes } from "routes";
 
 const STATUS_OPTIONS = [
@@ -69,6 +83,8 @@ const CANCELABLE = new Set([
   JOB_STATUS.STAGE_COMPLETE,
   "initializing",
 ]);
+
+const PAGE_SIZE = 6;
 
 function toMoment(value) {
   if (!value) return null;
@@ -125,6 +141,165 @@ function synthesiseProgress(job) {
   };
 }
 
+function renderJobProgress(job, progressMap) {
+  const status = String(job.status || "").toLowerCase();
+  if (status === JOB_STATUS.COMPLETED) {
+    return <ProgressBar now={100} variant="success" style={{ height: 8 }} />;
+  }
+  if (status === JOB_STATUS.FAILED) {
+    return <ProgressBar now={100} variant="danger" style={{ height: 8 }} />;
+  }
+  if (!ACTIVE_STATUSES.has(status)) {
+    return <span className="small text-muted">—</span>;
+  }
+  const progress = progressMap[job.job_id] || synthesiseProgress(job);
+  return <PipelineProgressBar progress={progress} compact />;
+}
+
+function PipelineJobCard({
+  job,
+  evidenceMap,
+  caseMap,
+  progressMap,
+  busy,
+  canCreate,
+  onCancel,
+}) {
+  const status = String(job.status || "").toLowerCase();
+  const detailPath = Routes.PipelineDetail.path.replace(":jobId", job.job_id);
+  const ev = evidenceMap[job.evidence_id];
+  const c = caseMap[job.case_id];
+  const evidenceLabel = humanizeFileName(
+    ev?.file_name,
+    formatEvidenceId(job.evidence_id)
+  );
+  const caseLabel = humanizeLabel(
+    c?.case_name || job.case_name,
+    formatCaseId(job.case_id)
+  );
+  const artefactCount =
+    progressMap[job.job_id]?.artefacts_found_so_far ?? job.artefact_count ?? 0;
+
+  return (
+    <Card border="light" className="shadow-sm h-100">
+      <Card.Body className="d-flex flex-column">
+        <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <Link
+            to={detailPath}
+            className="fw-bold text-decoration-none"
+            title={job.job_id}
+          >
+            {formatJobId(job.job_id)}
+          </Link>
+          <StatusBadge status={job.status} type="pipeline" />
+        </div>
+
+        <h5 className="h6 mb-3">
+          <Link
+            to={Routes.EvidenceDetail.path.replace(":id", job.evidence_id)}
+            className="text-dark text-decoration-none"
+            title={ev?.file_name || job.evidence_id}
+          >
+            {evidenceLabel}
+          </Link>
+        </h5>
+
+        <div className="mb-3">
+          <span className="small text-muted text-uppercase fw-bold">Mode</span>
+          <div>{modeLabel(job.mode)}</div>
+        </div>
+
+        <div className="mb-3">
+          <span className="small text-muted text-uppercase fw-bold">Progress</span>
+          <div className="mt-1">{renderJobProgress(job, progressMap)}</div>
+        </div>
+
+        <ul className="list-unstyled small text-muted mb-3 flex-grow-1">
+          <li className="d-flex align-items-start mb-2">
+            <FontAwesomeIcon icon={faFolderOpen} className="me-2 mt-1" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Case
+              </span>
+              <br />
+              <Link
+                to={Routes.CaseDetail.path.replace(":id", job.case_id)}
+                className="text-dark"
+                title={c?.case_name || job.case_id}
+              >
+                {caseLabel}
+              </Link>
+            </span>
+          </li>
+          <li className="d-flex align-items-center mb-2">
+            <FontAwesomeIcon icon={faStopwatch} className="me-2" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Duration
+              </span>
+              <br />
+              <span className="text-dark">
+                {formatDuration(jobDurationSeconds(job))}
+              </span>
+            </span>
+          </li>
+          <li className="d-flex align-items-center mb-2">
+            <FontAwesomeIcon icon={faLayerGroup} className="me-2" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Artefacts Found
+              </span>
+              <br />
+              <span className="text-dark">{artefactCount}</span>
+            </span>
+          </li>
+          <li className="d-flex align-items-center">
+            <FontAwesomeIcon icon={faClock} className="me-2" />
+            <span>
+              <span className="text-uppercase" style={{ fontSize: "0.7rem" }}>
+                Started
+              </span>
+              <br />
+              <span className="text-dark">
+                {formatDateRelative(job.started_at || job.created_at)}
+              </span>
+            </span>
+          </li>
+        </ul>
+
+        <div className="d-flex flex-wrap gap-2 mt-auto pt-2 border-top border-light">
+          <Button
+            as={Link}
+            to={detailPath}
+            variant="outline-primary"
+            size="sm"
+            title="View"
+          >
+            <FontAwesomeIcon icon={faEye} className="me-1" />
+            View
+          </Button>
+          {canCreate && CANCELABLE.has(status) ? (
+            <Button
+              variant="outline-danger"
+              size="sm"
+              disabled={busy}
+              onClick={() => onCancel(job)}
+              title="Cancel job"
+            >
+              {busy ? (
+                <Spinner animation="border" size="sm" className="me-1" />
+              ) : (
+                <FontAwesomeIcon icon={faBan} className="me-1" />
+              )}
+              Cancel
+            </Button>
+          ) : null}
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
+
 /**
  * Pipeline job monitor with filters, progress, and cancel actions.
  */
@@ -147,36 +322,39 @@ export default function PipelineJobs() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [actionBusy, setActionBusy] = useState(null);
-  const pageSize = 20;
 
   const filtersRef = useRef({ statusFilter, caseFilter, dateFrom, dateTo });
   filtersRef.current = { statusFilter, caseFilter, dateFrom, dateTo };
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    casesService
-      .list()
-      .then((result) => {
-        const items = Array.isArray(result?.cases) ? result.cases : [];
-        setCases(items);
-        const map = {};
-        items.forEach((c) => {
-          map[c.case_id] = c;
-        });
-        setCaseMap(map);
-      })
-      .catch(() => setCases([]));
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    evidenceService
-      .getInventory()
-      .then((result) => {
-        const items = Array.isArray(result?.items) ? result.items : [];
-        const map = {};
-        items.forEach((item) => {
-          map[item.evidence_id] = item;
-        });
-        setEvidenceMap(map);
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([fetchCasesCached(), fetchEvidenceInventoryCached()])
+      .then(([caseResult, inventoryResult]) => {
+        if (cancelled || !mountedRef.current) return;
+        const items = normaliseCasesList(caseResult);
+        setCases(items);
+        setCaseMap(buildCaseMap(items));
+        setEvidenceMap(buildEvidenceMap(inventoryResult?.items || inventoryResult));
       })
-      .catch(() => setEvidenceMap({}));
+      .catch(() => {
+        if (cancelled || !mountedRef.current) return;
+        setCases([]);
+        setCaseMap({});
+        setEvidenceMap({});
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const applyClientFilters = useCallback((list) => {
@@ -226,16 +404,24 @@ export default function PipelineJobs() {
     if (status && status !== JOB_STATUS.RUNNING) params.status = status;
     if (caseId) params.case_id = caseId;
 
-    const list = await pipelineService.listJobs(params);
+    const list = await fetchPipelineJobsCached(params);
     return applyClientFilters(list);
   }, [applyClientFilters]);
 
-  const refreshProgress = useCallback(async (jobList) => {
-    const active = (jobList || []).filter((job) =>
+  const pageRef = useRef(1);
+  pageRef.current = page;
+  const jobsRef = useRef(jobs);
+  jobsRef.current = jobs;
+
+  const refreshProgress = useCallback(async (jobList, onlyJobIds = null) => {
+    let active = (jobList || []).filter((job) =>
       ACTIVE_STATUSES.has(String(job.status || "").toLowerCase())
     );
+    if (onlyJobIds && onlyJobIds.size) {
+      active = active.filter((job) => onlyJobIds.has(job.job_id));
+    }
     if (!active.length) {
-      setProgressMap({});
+      if (mountedRef.current) setProgressMap((prev) => (onlyJobIds ? prev : {}));
       return {};
     }
     const entries = await Promise.all(
@@ -248,6 +434,7 @@ export default function PipelineJobs() {
         }
       })
     );
+    if (!mountedRef.current) return {};
     const next = {};
     entries.forEach(([id, progress]) => {
       next[id] = progress;
@@ -257,28 +444,37 @@ export default function PipelineJobs() {
   }, []);
 
   const loadJobs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    if (mountedRef.current) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const filtered = await fetchJobs();
+      if (!mountedRef.current) return filtered;
       setJobs(filtered);
-      await refreshProgress(filtered);
+      const start = (Math.max(1, pageRef.current) - 1) * PAGE_SIZE;
+      const visibleIds = new Set(
+        filtered.slice(start, start + PAGE_SIZE).map((job) => job.job_id)
+      );
+      await refreshProgress(filtered, visibleIds);
       return filtered;
     } catch (err) {
-      setError(err);
+      if (mountedRef.current) setError(err);
       throw err;
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [fetchJobs, refreshProgress]);
 
   useEffect(() => {
-    loadJobs().catch(() => {});
-  }, [loadJobs]);
-
-  useEffect(() => {
+    let cancelled = false;
     setPage(1);
-    loadJobs().catch(() => {});
+    loadJobs().catch(() => {
+      if (cancelled) return;
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, caseFilter, dateFrom, dateTo]);
 
@@ -292,20 +488,37 @@ export default function PipelineJobs() {
 
   const pollJobs = useCallback(async () => {
     const filtered = await fetchJobs();
+    if (!mountedRef.current) return filtered;
     setJobs(filtered);
-    await refreshProgress(filtered);
+    const start = (Math.max(1, pageRef.current) - 1) * PAGE_SIZE;
+    const visibleIds = new Set(
+      filtered.slice(start, start + PAGE_SIZE).map((job) => job.job_id)
+    );
+    await refreshProgress(filtered, visibleIds);
     return filtered;
   }, [fetchJobs, refreshProgress]);
 
-  usePolling(pollJobs, 5000, hasRunning);
+  usePolling(pollJobs, config.pollingInterval || 30000, hasRunning);
+
+  useEffect(() => {
+    const jobList = jobsRef.current;
+    if (!jobList.length) return undefined;
+    const start = (Math.max(1, page) - 1) * PAGE_SIZE;
+    const visibleIds = new Set(
+      jobList.slice(start, start + PAGE_SIZE).map((job) => job.job_id)
+    );
+    refreshProgress(jobList, visibleIds).catch(() => {});
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const pagedJobs = useMemo(() => {
-    const start = (Math.max(1, page) - 1) * pageSize;
-    return jobs.slice(start, start + pageSize).map((job) => ({
-      ...job,
-      id: job.job_id,
-    }));
+    const start = (Math.max(1, page) - 1) * PAGE_SIZE;
+    return jobs.slice(start, start + PAGE_SIZE);
   }, [jobs, page]);
+
+  const totalPages = Math.max(1, Math.ceil(jobs.length / PAGE_SIZE));
+  const showPagination = !loading && jobs.length > PAGE_SIZE;
 
   const handleCancel = async (job) => {
     try {
@@ -322,150 +535,15 @@ export default function PipelineJobs() {
     setActionBusy(job.job_id);
     try {
       await pipelineService.cancel(job.job_id);
+      if (!mountedRef.current) return;
       success("Job cancelled", `Pipeline ${formatJobId(job.job_id)} was cancelled.`);
       await loadJobs();
     } catch (err) {
+      if (!mountedRef.current) return;
       notifyError("Cancel failed", err?.message || "Could not cancel the job.");
     } finally {
-      setActionBusy(null);
+      if (mountedRef.current) setActionBusy(null);
     }
-  };
-
-  const columns = useMemo(
-    () => [
-      {
-        key: "job_id",
-        header: "Job ID",
-        sortable: true,
-        render: (row) => (
-          <Link
-            to={Routes.PipelineDetail.path.replace(":jobId", row.job_id)}
-            className="fw-bold"
-            title={row.job_id}
-          >
-            {formatJobId(row.job_id)}
-          </Link>
-        ),
-      },
-      {
-        key: "evidence",
-        header: "Evidence",
-        render: (row) => {
-          const ev = evidenceMap[row.evidence_id];
-          const label = humanizeFileName(
-            ev?.file_name,
-            formatEvidenceId(row.evidence_id)
-          );
-          return (
-            <Link
-              to={Routes.EvidenceDetail.path.replace(":id", row.evidence_id)}
-              title={ev?.file_name || row.evidence_id}
-            >
-              {label}
-            </Link>
-          );
-        },
-      },
-      {
-        key: "case",
-        header: "Case",
-        render: (row) => {
-          const c = caseMap[row.case_id];
-          const label = humanizeLabel(
-            c?.case_name || row.case_name,
-            formatCaseId(row.case_id)
-          );
-          return (
-            <Link
-              to={Routes.CaseDetail.path.replace(":id", row.case_id)}
-              title={c?.case_name || row.case_id}
-            >
-              {label}
-            </Link>
-          );
-        },
-      },
-      {
-        key: "status",
-        header: "Status",
-        sortable: true,
-        render: (row) => <StatusBadge status={row.status} type="pipeline" />,
-      },
-      {
-        key: "mode",
-        header: "Mode",
-        render: (row) => modeLabel(row.mode),
-      },
-      {
-        key: "progress",
-        header: "Progress",
-        render: (row) => {
-          const status = String(row.status || "").toLowerCase();
-          if (status === JOB_STATUS.COMPLETED) {
-            return <ProgressBar now={100} variant="success" style={{ height: 8 }} />;
-          }
-          if (status === JOB_STATUS.FAILED) {
-            return <ProgressBar now={100} variant="danger" style={{ height: 8 }} />;
-          }
-          if (!ACTIVE_STATUSES.has(status)) {
-            return "—";
-          }
-          const progress = progressMap[row.job_id] || synthesiseProgress(row);
-          return <PipelineProgressBar progress={progress} compact />;
-        },
-      },
-      {
-        key: "duration",
-        header: "Duration",
-        render: (row) => formatDuration(jobDurationSeconds(row)),
-      },
-      {
-        key: "artefact_count",
-        header: "Artefacts Found",
-        sortable: true,
-        render: (row) =>
-          progressMap[row.job_id]?.artefacts_found_so_far ??
-          row.artefact_count ??
-          0,
-      },
-      {
-        key: "started_at",
-        header: "Started",
-        sortable: true,
-        render: (row) =>
-          formatDateRelative(row.started_at || row.created_at),
-      },
-    ],
-    [evidenceMap, caseMap, progressMap]
-  );
-
-  const renderActions = (row) => {
-    const status = String(row.status || "").toLowerCase();
-    const busy = actionBusy === row.job_id;
-    return (
-      <div className="d-flex justify-content-end flex-wrap gap-1">
-        <Button
-          as={Link}
-          to={Routes.PipelineDetail.path.replace(":jobId", row.job_id)}
-          variant="outline-primary"
-          size="sm"
-        >
-          <FontAwesomeIcon icon={faEye} className="me-1" />
-          View
-        </Button>
-        {canCreate && CANCELABLE.has(status) ? (
-          <Button
-            variant="outline-danger"
-            size="sm"
-            disabled={busy}
-            onClick={() => handleCancel(row)}
-          >
-            <FontAwesomeIcon icon={faBan} className="me-1" />
-            Cancel
-          </Button>
-        ) : null}
-      </div>
-    );
   };
 
   return (
@@ -579,31 +657,84 @@ export default function PipelineJobs() {
         />
       ) : null}
 
-      <Card border="light" className="shadow-sm">
-        <Card.Body className="p-0">
-          <DataTable
-            columns={columns}
-            data={pagedJobs}
-            loading={loading}
-            sortable
-            emptyMessage="No pipeline jobs found. Run a pipeline against validated evidence to begin."
-            pagination={{ page, pageSize, total: jobs.length }}
-            onPageChange={(next) => setPage(next)}
-            actions={renderActions}
-          />
-        </Card.Body>
-        {!loading && canCreate && jobs.length === 0 && !error ? (
-          <Card.Footer className="bg-white text-center border-0 pb-4">
-            <Button
-              variant="primary"
-              onClick={() => history.push(Routes.PipelineRun.path)}
-            >
-              <FontAwesomeIcon icon={faPlay} className="me-2" />
-              Run first pipeline
-            </Button>
-          </Card.Footer>
-        ) : null}
-      </Card>
+      {loading ? (
+        <Row className="g-3 mb-3">
+          {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+            <Col key={`skeleton-${index}`} xs={12} md={6} xl={4}>
+              <Card border="light" className="shadow-sm h-100">
+                <Card.Body>
+                  <SkeletonLoader type="text" rows={6} />
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      ) : jobs.length === 0 ? (
+        <Card border="light" className="shadow-sm">
+          <Card.Body>
+            <EmptyState
+              title="No pipeline jobs found"
+              description="Run a pipeline against validated evidence to begin."
+            />
+            {canCreate ? (
+              <div className="text-center pb-2">
+                <Button
+                  variant="primary"
+                  onClick={() => history.push(Routes.PipelineRun.path)}
+                >
+                  <FontAwesomeIcon icon={faPlay} className="me-2" />
+                  Run first pipeline
+                </Button>
+              </div>
+            ) : null}
+          </Card.Body>
+        </Card>
+      ) : (
+        <>
+          <Row className="g-3 mb-3" aria-label="Pipeline jobs">
+            {pagedJobs.map((job) => (
+              <Col key={job.job_id} xs={12} md={6} xl={4}>
+                <PipelineJobCard
+                  job={job}
+                  evidenceMap={evidenceMap}
+                  caseMap={caseMap}
+                  progressMap={progressMap}
+                  busy={actionBusy === job.job_id}
+                  canCreate={canCreate}
+                  onCancel={handleCancel}
+                />
+              </Col>
+            ))}
+          </Row>
+
+          {showPagination ? (
+            <div className="d-flex justify-content-between align-items-center px-1 pb-2">
+              <span className="small text-muted">
+                Page {page} of {totalPages} ({jobs.length} total)
+              </span>
+              <nav aria-label="Pipeline jobs pagination">
+                <Pagination className="mb-0">
+                  <Pagination.Prev
+                    disabled={page <= 1}
+                    aria-label="Previous page"
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  />
+                  <Pagination.Item active aria-current="page">
+                    {page}
+                  </Pagination.Item>
+                  <Pagination.Next
+                    disabled={page >= totalPages}
+                    aria-label="Next page"
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
+                  />
+                </Pagination>
+              </nav>
+            </div>
+          ) : null}
+        </>
+      )}
 
       <ConfirmDialog {...dialogProps} />
     </Container>

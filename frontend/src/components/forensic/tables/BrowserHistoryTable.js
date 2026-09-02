@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { OverlayTrigger, Tooltip } from "@themesberg/react-bootstrap";
 
 import DataTable from "components/common/DataTable";
 import { formatDate } from "utils/formatters";
@@ -51,28 +50,22 @@ export default function BrowserHistoryTable({
           const url = raw(row).url || "";
           const href = safeHref(url);
           const truncated = truncateText(url || "—", 64);
-          const tip = (
-            <Tooltip id={`url-${row.artefact_id || "x"}`}>
-              {url || "—"}
-            </Tooltip>
-          );
           const content = href ? (
             <a
               href={href}
               target="_blank"
               rel="noopener noreferrer"
               className="small text-break"
+              title={url || undefined}
             >
               {truncated}
             </a>
           ) : (
-            <span className="small text-break">{truncated}</span>
+            <span className="small text-break" title={url || undefined}>
+              {truncated}
+            </span>
           );
-          return (
-            <OverlayTrigger placement="top" overlay={tip}>
-              <span>{content}</span>
-            </OverlayTrigger>
-          );
+          return content;
         },
       },
       {

@@ -133,20 +133,12 @@ Docker lab stack: `docker compose -f docker-compose.dev.yml up --build`.
 
 ## Research context
 
-DFAT is submitted as postgraduate research for the **MSc Cybersecurity** at
-**Canterbury Christ Church University (CCCU)**. The work follows **Design
-Science Research** (Hevner et al., 2004): build a working artefact, then
-evaluate it with forensic benchmarks (DFRWS / CFReDS) and a locked usability
-instrument comparable to Tobin et al. Design choices favour reproducibility,
-ACPO-oriented audit, and GDPR-compatible **local-only** inference over
-cloud-scale operations ([ADR-001](docs/architecture/adr/ADR-001-design-science-research.md)).
-
-## Acknowledgments
-
-Supervised by **Dr. Mandy Qi**, Canterbury Christ Church University (CCCU).
-
-Developed as postgraduate research at CCCU. Contact on the API OpenAPI
-metadata: Muhammad Aaqif Afzaal (`100176885@canterbury.ac.uk`).
+DFAT follows **Design Science Research** (Hevner et al., 2004): build a
+working artefact, then evaluate it with forensic benchmarks (DFRWS / CFReDS)
+and a locked usability instrument comparable to Tobin et al. Design choices
+favour reproducibility, ACPO-oriented audit, and GDPR-compatible
+**local-only** inference over cloud-scale operations
+([ADR-001](docs/architecture/adr/ADR-001-design-science-research.md)).
 
 ## License
 

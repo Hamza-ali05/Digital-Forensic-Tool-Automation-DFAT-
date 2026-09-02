@@ -29,6 +29,7 @@ from dfat.api.routes import (
     evidence,
     evidence_management,
     health,
+    integrity,
     knowledge,
     ml,
     monitoring,
@@ -55,6 +56,7 @@ _OPENAPI_TAGS = [
         "name": "Evidence Management",
         "description": "Validation, custody, inventory, and integrity workflows",
     },
+    {"name": "Integrity", "description": "Batch evidence integrity verification"},
     {"name": "Analysis", "description": "Automated analysis pipeline control"},
     {
         "name": "AI Analysis",
@@ -151,10 +153,7 @@ def create_app() -> FastAPI:
             "management, automated analysis via local LLaMA-3, dual-output "
             "reporting, and DFRWS/CFReDS benchmark evaluation."
         ),
-        contact={
-            "name": "Muhammad Aaqif Afzaal",
-            "email": "100176885@canterbury.ac.uk",
-        },
+        contact={"name": "DFAT"},
         license_info={"name": "MIT"},
         openapi_tags=_OPENAPI_TAGS,
         docs_url="/docs",
@@ -187,6 +186,7 @@ def create_app() -> FastAPI:
     # Evidence Management routes before legacy Evidence so static paths
     # (/register, /inventory, /statistics) are not captured by /{evidence_id}.
     app.include_router(evidence_management.router, prefix=api_prefix)
+    app.include_router(integrity.router, prefix=api_prefix)
     app.include_router(evidence.router, prefix=api_prefix)
     app.include_router(analysis.router, prefix=api_prefix)
     app.include_router(ai.router, prefix=api_prefix)

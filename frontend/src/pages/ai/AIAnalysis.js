@@ -15,7 +15,6 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBroom,
-  faInfoCircle,
   faPlay,
   faSyncAlt,
 } from "@fortawesome/free-solid-svg-icons";
@@ -146,7 +145,7 @@ export default function AIAnalysis() {
   const [evidenceId, setEvidenceId] = useState(queryEvidenceId);
   const [artefacts, setArtefacts] = useState([]);
   const [analysisType, setAnalysisType] = useState(ANALYSIS_TYPE.CLASSIFY);
-  const [useFallback, setUseFallback] = useState(false);
+  const [useFallback, setUseFallback] = useState(true);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState(null);
   const [classifyResult, setClassifyResult] = useState(null);
@@ -231,6 +230,7 @@ export default function AIAnalysis() {
   }, [evidenceId]);
 
   const aiOk = isAiHealthy(health);
+  const hasArtefacts = artefacts.length > 0;
   const suggestions = useMemo(() => buildSuggestions(artefacts), [artefacts]);
   const artefactById = useMemo(() => {
     const map = new Map();
@@ -283,7 +283,10 @@ export default function AIAnalysis() {
     setRunError(null);
     setClassifyResult(null);
     setSummaryResult(null);
-    const payload = { evidence_id: evidenceId, use_fallback: useFallback };
+    const payload = {
+      evidence_id: evidenceId,
+      use_fallback: useFallback || !hasArtefacts,
+    };
     try {
       const classified = await aiService.classify(payload);
       setClassifyResult(classified);
@@ -395,13 +398,6 @@ export default function AIAnalysis() {
           </div>
         }
       />
-
-      <Alert variant="info" className="mb-4">
-        <FontAwesomeIcon icon={faInfoCircle} className="me-2" />
-        AI-generated analysis uses base LLaMA-3 and should be verified against
-        the structured JSON artefact data. Confidence scores indicate the
-        reliability of AI outputs.
-      </Alert>
 
       {/* Section 1 — AI Engine Status */}
       <Card border="light" className="shadow-sm mb-4">
@@ -589,6 +585,11 @@ export default function AIAnalysis() {
                 <span className="small text-muted ms-2">
                   Analysis create permission is required.
                 </span>
+              ) : evidenceId && !hasArtefacts ? (
+                <span className="small text-muted ms-2">
+                  No parsed artefacts yet — run the pipeline on this evidence or choose
+                  processed evidence from the list.
+                </span>
               ) : null}
             </div>
           </Form>
@@ -720,7 +721,11 @@ export default function AIAnalysis() {
               ) : classifyResult ? (
                 <EmptyState
                   title="No classifications returned"
-                  description="The AI engine completed but produced no artefact classifications."
+                  description={
+                    useFallback
+                      ? "The rule-based fallback completed, but no parsed artefacts were available to classify. Run the pipeline on a valid forensic image for artefact-level results."
+                      : "The AI engine completed but produced no artefact classifications."
+                  }
                 />
               ) : null}
             </div>

@@ -146,6 +146,36 @@ async def test_summarize_with_fallback(app_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_classify_with_fallback_empty_artefacts(app_client: TestClient) -> None:
+    """Verify classify with fallback succeeds when no artefacts exist."""
+    response = app_client.post(
+        "/api/v1/ai/classify",
+        headers=_analyst_headers(app_client),
+        json={"evidence_id": "ev-ai-empty-001", "use_fallback": True},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["model_used"] == "RuleBasedFallback"
+    assert payload["classifications"] == []
+
+
+@pytest.mark.asyncio
+async def test_classify_empty_artefacts_auto_fallback_without_flag(
+    app_client: TestClient,
+) -> None:
+    """Verify classify auto-falls back when artefacts are missing."""
+    response = app_client.post(
+        "/api/v1/ai/classify",
+        headers=_analyst_headers(app_client),
+        json={"evidence_id": "ev-ai-empty-002", "use_fallback": False},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["model_used"] == "RuleBasedFallback"
+    assert payload["classifications"] == []
+
+
+@pytest.mark.asyncio
 async def test_classify_requires_auth(app_client: TestClient) -> None:
     """Verify classify rejects unauthenticated requests."""
     response = app_client.post(

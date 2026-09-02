@@ -297,7 +297,7 @@ def test_bug_002_audit_middleware_ignores_container_override(
     """API_REQUEST entries must land on the container forensic logger."""
     request_id = f"bug002-{uuid4().hex[:10]}"
     response = app_client.get(
-        "/api/v1/health",
+        "/api/v1/health/ready",
         headers={"X-Request-ID": request_id},
     )
     assert response.status_code == 200

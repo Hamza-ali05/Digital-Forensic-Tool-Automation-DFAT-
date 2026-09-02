@@ -28,14 +28,14 @@ const INSTALL_HINTS = {
   llm: "Install Ollama locally and pull the configured model (e.g. ollama pull llama3). Ensure DFAT AI settings point to your Ollama API URL.",
   rag: "Enable RAG in config, ensure Ollama is healthy, and index documents into the knowledge vector store from the Knowledge dashboard.",
   ml: "Place labelled datasets under data/datasets and train a model from the ML dashboard or wait for auto-retrain.",
-  yara: "Install yara-python and add .yar rule files under data/threat_intel/yara/, then restart DFAT.",
-  sigma: "Install pySigma and add Sigma rules under data/threat_intel/sigma/, then restart DFAT.",
+  yara: "Install yara-python and add .yar rule files under data/yara_rules/, then restart DFAT.",
+  sigma: "Install pySigma (optional) and add Sigma .yml rules under data/sigma_rules/, then restart DFAT.",
   mitre: "MITRE mappings are embedded; if unavailable, verify threat intelligence bootstrap completed without errors.",
   vector_store: "Ensure ChromaDB dependencies are installed and the knowledge base directory is writable.",
   graph: "Initialize the forensic knowledge graph during bootstrap; check logs for graph build errors.",
   ioc_db: "Import or generate IOC entries under the knowledge IOC database path.",
-  dfrws: "Place DFRWS ground-truth JSON files under data/ground_truth/dfrws/.",
-  cfreds: "Place CFReDS ground-truth JSON files under data/ground_truth/cfreds/.",
+  dfrws: "Place DFRWS ground-truth JSON files under data/ground_truth/dfrws/, then restart DFAT.",
+  cfreds: "Place CFReDS ground-truth JSON files under data/ground_truth/cfreds/, then restart DFAT.",
 };
 
 function AvailabilityBadge({ available }) {

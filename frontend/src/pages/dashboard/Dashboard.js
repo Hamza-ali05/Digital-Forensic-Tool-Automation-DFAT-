@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -36,14 +36,18 @@ import SkeletonLoader from "components/common/SkeletonLoader";
 import StatCard from "components/forensic/StatCard";
 import HealthBar from "components/forensic/HealthBar";
 import { Routes } from "routes";
-import { SUSPICION_COLOURS, SUSPICION_LEVEL } from "utils/constants";
+import { JOB_STATUS, PIPELINE_STATUS_COLOURS } from "utils/constants";
 import { formatDate, formatDateRelative } from "utils/formatters";
 import usePermission from "hooks/usePermission";
-import casesService from "services/cases.service";
-import evidenceService from "services/evidence.service";
-import pipelineService from "services/pipeline.service";
 import reportsService from "services/reports.service";
 import healthService from "services/health.service";
+import {
+  fetchCasesCached,
+  fetchEvidenceStatisticsCached,
+  fetchPipelineJobsCached,
+  fetchReportsCached,
+  normaliseCasesList,
+} from "services/referenceData";
 
 ChartJS.register(
   ArcElement,
@@ -65,12 +69,15 @@ const CATEGORY_COLOURS = [
   "#6c757d",
 ];
 
-const SUSPICION_ORDER = [
-  SUSPICION_LEVEL.CRITICAL,
-  SUSPICION_LEVEL.HIGH,
-  SUSPICION_LEVEL.MEDIUM,
-  SUSPICION_LEVEL.LOW,
-  SUSPICION_LEVEL.INFORMATIONAL,
+const JOB_STATUS_ORDER = [
+  JOB_STATUS.QUEUED,
+  JOB_STATUS.INITIALISING,
+  JOB_STATUS.RUNNING,
+  JOB_STATUS.STAGE_COMPLETE,
+  JOB_STATUS.COMPLETED,
+  JOB_STATUS.FAILED,
+  JOB_STATUS.CANCELLED,
+  JOB_STATUS.TIMED_OUT,
 ];
 
 function humaniseKey(key) {
@@ -133,30 +140,39 @@ export default function Dashboard() {
   const [evidenceByType, setEvidenceByType] = useState({});
   const [runningPipelines, setRunningPipelines] = useState(0);
   const [reportsTotal, setReportsTotal] = useState(0);
-  const [suspicionByLevel, setSuspicionByLevel] = useState(null);
+  const [jobsByStatus, setJobsByStatus] = useState({});
   const [activity, setActivity] = useState([]);
   const [healthChecks, setHealthChecks] = useState({});
   const [healthLoading, setHealthLoading] = useState(true);
   const [healthError, setHealthError] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const loadDashboard = useCallback(async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     setHealthLoading(true);
     setHealthError(false);
 
     const settled = await Promise.allSettled([
-      casesService.list({ status: "active" }),
-      evidenceService.getStatistics(),
-      pipelineService.listJobs({ status: "running" }),
-      pipelineService.listJobs(),
-      reportsService.getTotal(),
+      fetchCasesCached({ status: "active" }),
+      fetchEvidenceStatisticsCached(),
+      fetchPipelineJobsCached(),
+      fetchReportsCached(),
       healthService.ready(),
     ]);
+
+    if (!mountedRef.current) return;
 
     const [
       casesResult,
       evidenceResult,
-      runningResult,
       allJobsResult,
       reportsResult,
       healthResult,
@@ -164,14 +180,9 @@ export default function Dashboard() {
 
     if (casesResult.status === "fulfilled") {
       const payload = casesResult.value;
+      const list = normaliseCasesList(payload);
       setActiveCases(
-        typeof payload?.total === "number"
-          ? payload.total
-          : Array.isArray(payload?.cases)
-            ? payload.cases.length
-            : Array.isArray(payload)
-              ? payload.length
-              : 0
+        typeof payload?.total === "number" ? payload.total : list.length
       );
     }
 
@@ -181,13 +192,9 @@ export default function Dashboard() {
       setEvidenceByType(stats.by_type || {});
     }
 
-    if (runningResult.status === "fulfilled") {
-      const jobs = runningResult.value || [];
-      setRunningPipelines(Array.isArray(jobs) ? jobs.length : 0);
-    }
-
     if (reportsResult.status === "fulfilled") {
-      setReportsTotal(Number(reportsResult.value) || 0);
+      const reports = Array.isArray(reportsResult.value) ? reportsResult.value : [];
+      setReportsTotal(reports.length);
     }
 
     const allJobs =
@@ -195,48 +202,91 @@ export default function Dashboard() {
         ? [...allJobsResult.value]
         : [];
 
+    const runningCount = allJobs.filter((job) => {
+      const status = String(job.status || "").toLowerCase();
+      return (
+        status === JOB_STATUS.RUNNING ||
+        status === JOB_STATUS.QUEUED ||
+        status === JOB_STATUS.INITIALISING ||
+        status === "initializing" ||
+        status === "in_progress"
+      );
+    }).length;
+    setRunningPipelines(runningCount);
+
     allJobs.sort((a, b) => {
       const ta = new Date(a.completed_at || a.created_at || 0).getTime();
       const tb = new Date(b.completed_at || b.created_at || 0).getTime();
       return tb - ta;
     });
 
+    const statusCounts = {};
+    allJobs.forEach((job) => {
+      const status = String(job.status || "unknown").toLowerCase();
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+
     const candidates = allJobs.filter((job) => job.report_id);
     let nextActivity = allJobs.slice(0, 10).map(jobToActivity);
-    let nextSuspicion = null;
 
-    for (const candidate of candidates) {
-      try {
-        const [jsonReport, audit] = await Promise.all([
-          reportsService.getJson(candidate.report_id),
-          reportsService.getAuditTrail(candidate.report_id),
-        ]);
-        nextSuspicion =
-          jsonReport?.summary_statistics?.by_suspicion_level || null;
-        const entries = Array.isArray(audit?.entries)
-          ? audit.entries
-          : Array.isArray(audit)
-            ? audit
-            : [];
-        if (entries.length) {
-          const sorted = [...entries].sort((a, b) => {
-            const ta = new Date(a.timestamp || 0).getTime();
-            const tb = new Date(b.timestamp || 0).getTime();
-            return tb - ta;
-          });
-          nextActivity = sorted.slice(0, 10).map(auditToActivity);
+    if (reportsResult.status === "fulfilled") {
+      const reports = Array.isArray(reportsResult.value) ? reportsResult.value : [];
+      if (reports.length) {
+        const latest = reports[0];
+        try {
+          const audit = await reportsService.getAuditTrail(latest.report_id);
+          if (!mountedRef.current) return;
+          const entries = Array.isArray(audit?.entries)
+            ? audit.entries
+            : Array.isArray(audit)
+              ? audit
+              : [];
+          if (entries.length) {
+            const sorted = [...entries].sort((a, b) => {
+              const ta = new Date(a.timestamp || 0).getTime();
+              const tb = new Date(b.timestamp || 0).getTime();
+              return tb - ta;
+            });
+            nextActivity = sorted.slice(0, 10).map(auditToActivity);
+          }
+        } catch (err) {
+          if (err?.response?.status !== 404) {
+            // Keep pipeline-derived activity on audit fetch failure.
+          }
         }
-        break;
-      } catch (err) {
-        // Skip orphaned job.report_id pointers (common after DB cleanup).
-        if (err?.response?.status === 404) {
-          continue;
+      }
+    } else {
+      for (const candidate of candidates) {
+        if (!mountedRef.current) return;
+        try {
+          const audit = await reportsService.getAuditTrail(candidate.report_id);
+          if (!mountedRef.current) return;
+          const entries = Array.isArray(audit?.entries)
+            ? audit.entries
+            : Array.isArray(audit)
+              ? audit
+              : [];
+          if (entries.length) {
+            const sorted = [...entries].sort((a, b) => {
+              const ta = new Date(a.timestamp || 0).getTime();
+              const tb = new Date(b.timestamp || 0).getTime();
+              return tb - ta;
+            });
+            nextActivity = sorted.slice(0, 10).map(auditToActivity);
+          }
+          break;
+        } catch (err) {
+          if (err?.response?.status === 404) {
+            continue;
+          }
+          break;
         }
-        break;
       }
     }
 
-    setSuspicionByLevel(nextSuspicion);
+    if (!mountedRef.current) return;
+
+    setJobsByStatus(statusCounts);
     setActivity(nextActivity);
 
     if (healthResult.status === "fulfilled") {
@@ -284,28 +334,32 @@ export default function Dashboard() {
     };
   }, [evidenceByType]);
 
-  const suspicionData = useMemo(() => {
-    const source = suspicionByLevel || {};
-    const labels = SUSPICION_ORDER.map(humaniseKey);
-    const values = SUSPICION_ORDER.map((level) => Number(source[level]) || 0);
-    const hasData = values.some((v) => v > 0);
+  const pipelineStatusData = useMemo(() => {
+    const source = jobsByStatus || {};
+    const seen = Object.keys(source);
+    const ordered = JOB_STATUS_ORDER.filter((status) => source[status] > 0);
+    seen.forEach((status) => {
+      if (!ordered.includes(status) && Number(source[status]) > 0) {
+        ordered.push(status);
+      }
+    });
     return {
-      hasData,
+      hasData: ordered.length > 0,
       chart: {
-        labels,
+        labels: ordered.map(humaniseKey),
         datasets: [
           {
-            label: "Artefacts",
-            data: hasData ? values : SUSPICION_ORDER.map(() => 0),
-            backgroundColor: SUSPICION_ORDER.map(
-              (level) => SUSPICION_COLOURS[level]
+            label: "Jobs",
+            data: ordered.map((status) => Number(source[status]) || 0),
+            backgroundColor: ordered.map(
+              (status) => PIPELINE_STATUS_COLOURS[status] || "#6c757d"
             ),
             borderWidth: 0,
           },
         ],
       },
     };
-  }, [suspicionByLevel]);
+  }, [jobsByStatus]);
 
   return (
     <Container fluid className="px-0">
@@ -399,31 +453,30 @@ export default function Dashboard() {
         <Col xs={12} lg={6}>
           <Card border="light" className="shadow-sm h-100">
             <Card.Header className="border-bottom border-light">
-              <h5 className="mb-0">Artefacts by Suspicion Level</h5>
+              <h5 className="mb-0">Pipeline Jobs by Status</h5>
             </Card.Header>
             <Card.Body>
               {loading ? (
                 <SkeletonLoader type="card" rows={1} />
-              ) : !suspicionData.hasData ? (
+              ) : !pipelineStatusData.hasData ? (
                 <EmptyState
-                  title="No triage data yet"
-                  description="Suspicion distribution appears after a completed pipeline run with a report."
+                  title="No pipeline jobs yet"
+                  description="Status counts appear after you run a pipeline."
                 />
               ) : (
                 <div style={{ minHeight: 240 }}>
                   <Bar
-                    data={suspicionData.chart}
-                    aria-label="Artefacts by suspicion level"
+                    data={pipelineStatusData.chart}
+                    aria-label="Pipeline jobs by status"
                     role="img"
                     options={{
-                      indexAxis: "y",
                       responsive: true,
                       maintainAspectRatio: true,
                       plugins: {
                         legend: { display: false },
                       },
                       scales: {
-                        x: {
+                        y: {
                           beginAtZero: true,
                           ticks: { precision: 0 },
                         },
@@ -469,7 +522,7 @@ export default function Dashboard() {
                         <FontAwesomeIcon icon={item.icon || faShieldAlt} />
                       </div>
                       <div className="flex-grow-1">
-                        <div className="fw-bold">{item.action}</div>
+                        <div className="fw-bold">{humaniseKey(item.action)}</div>
                         <div className="small text-muted">
                           {item.user} · {formatDateRelative(item.timestamp)}
                           <span className="mx-1">·</span>

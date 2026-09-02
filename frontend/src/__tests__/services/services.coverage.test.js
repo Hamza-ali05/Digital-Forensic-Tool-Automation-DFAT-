@@ -39,7 +39,6 @@ describe("service method coverage (mocked api)", () => {
       headers: { "content-disposition": 'attachment; filename="r.bin"' },
     });
 
-    await healthService.check();
     await healthService.ready();
     await healthService.detailed();
     await usersService.getMe();

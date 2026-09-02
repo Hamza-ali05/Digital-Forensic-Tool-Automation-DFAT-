@@ -145,6 +145,34 @@ class IntegrityVerificationResponse(APIModel):
     custody_record: Optional[dict[str, Any]] = None
 
 
+class BatchIntegrityVerifyRequest(BaseModel):
+    """Batch integrity verification request."""
+
+    case_id: Optional[str] = None
+    evidence_ids: Optional[list[str]] = None
+
+
+class BatchIntegrityVerifyItem(APIModel):
+    """Single item in a batch integrity verification response."""
+
+    evidence_id: str
+    file_name: Optional[str] = None
+    integrity_verified: bool = False
+    hash_set: dict[str, Any] = Field(default_factory=dict)
+    timestamp: str
+    discrepancies: dict[str, Any] = Field(default_factory=dict)
+    error: Optional[str] = None
+
+
+class BatchIntegrityVerifyResponse(APIModel):
+    """Batch integrity verification summary."""
+
+    items: list[BatchIntegrityVerifyItem] = Field(default_factory=list)
+    total: int = 0
+    passed: int = 0
+    failed: int = 0
+
+
 class EvidenceStatisticsResponse(APIModel):
     """Aggregated evidence statistics."""
 

@@ -45,6 +45,35 @@
 		margin-bottom: .2rem;
 	}
 
+	.sidebar-nav-group {
+		.nav-link {
+			border: 0;
+		}
+	}
+
+	.sidebar-nav-toggle {
+		flex-shrink: 0;
+		width: 1.75rem;
+		height: 1.75rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border: 0;
+		opacity: 0.85;
+		text-decoration: none;
+
+		&:hover,
+		&:focus {
+			opacity: 1;
+			color: $white;
+			box-shadow: none;
+		}
+
+		.sidebar-chevron {
+			font-size: 0.75rem;
+		}
+	}
+
 	.nav-link + .multi-level {
 		margin-top: .2rem;
 	}
