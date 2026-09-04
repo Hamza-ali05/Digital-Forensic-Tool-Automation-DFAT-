@@ -32,6 +32,13 @@ _TABLE_COUNT_QUERIES = {
 }
 
 
+class LivenessResponse(APIModel):
+    """Lightweight liveness probe used by launchers and process monitors."""
+
+    status: str
+    timestamp: datetime
+
+
 class ReadinessResponse(APIModel):
     """Readiness probe with component checks."""
 
@@ -85,6 +92,13 @@ def _service_status_map(request: Request) -> dict[str, str]:
 async def _aggregated_health(request: Request) -> AggregatedHealth:
     """Run the monitoring aggregator against the request DI container."""
     return await HealthAggregator.from_container(_container(request)).collect()
+
+
+@router.get("", response_model=LivenessResponse)
+@router.get("/", response_model=LivenessResponse, include_in_schema=False)
+async def liveness() -> LivenessResponse:
+    """Process liveness check — confirms the API process is serving requests."""
+    return LivenessResponse(status="ok", timestamp=datetime.now(UTC))
 
 
 @router.get("/ready", response_model=ReadinessResponse)

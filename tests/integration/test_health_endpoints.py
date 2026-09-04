@@ -5,10 +5,13 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 
-def test_health_liveness_removed(app_client: TestClient) -> None:
-    """Basic /health liveness endpoint is not exposed."""
+def test_health_liveness_ok(app_client: TestClient) -> None:
+    """Basic /health liveness endpoint reports that the process is up."""
     response = app_client.get("/api/v1/health")
-    assert response.status_code == 404
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert "timestamp" in body
 
 
 def test_ready_checks_database(app_client: TestClient) -> None:
@@ -45,3 +48,11 @@ def test_detailed_requires_admin(app_client: TestClient) -> None:
     assert viewer.status_code == 403
     assert admin.status_code == 200
     assert "python_version" in admin.json()
+
+
+def test_pipeline_websocket_connects(app_client: TestClient) -> None:
+    """Unmatched /ws/pipeline used to 403; the live-progress socket must accept."""
+    with app_client.websocket_connect("/ws/pipeline") as socket:
+        payload = socket.receive_json()
+    assert payload.get("status") == "connected"
+

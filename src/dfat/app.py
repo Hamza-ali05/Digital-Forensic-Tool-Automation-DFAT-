@@ -34,6 +34,7 @@ from dfat.api.routes import (
     ml,
     monitoring,
     pipeline,
+    pipeline_ws,
     reports,
     system,
     threat_intel,
@@ -199,5 +200,6 @@ def create_app() -> FastAPI:
     app.include_router(ml.router, prefix=api_prefix)
     app.include_router(threat_intel.router, prefix=api_prefix)
     app.include_router(system.router, prefix=api_prefix)
+    app.include_router(pipeline_ws.router)
 
     return app

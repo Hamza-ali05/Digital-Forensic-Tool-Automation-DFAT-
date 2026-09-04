@@ -265,7 +265,6 @@ Client Browser
 
 | ADR | Title | Prompt | Status |
 |-----|-------|--------|--------|
-| [001](adr/ADR-001-design-science-research.md) | DSR Methodology | 1 | Accepted |
 | [002](adr/ADR-002-local-llm-only.md) | Local LLM Only | 1 | Accepted |
 | [003](adr/ADR-003-dual-output-report.md) | Dual-Output Report Format | 1 | Accepted |
 | [004](adr/ADR-004-file-based-repositories.md) | Repository Pattern with File-Based Storage | 1 | Accepted |

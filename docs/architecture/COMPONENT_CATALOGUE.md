@@ -1,6 +1,6 @@
 # Component Catalogue
 
-This catalogue lists the major DFAT components by architectural layer. It is intended as a practical index for implementation review, dissertation mapping, and future extension work.
+This catalogue lists the major DFAT components by architectural layer. It is intended as a practical index for implementation review and extension work.
 
 ## 1. Domain Layer
 
@@ -243,9 +243,4 @@ This catalogue lists the major DFAT components by architectural layer. It is int
 
 ## 9. Architectural Use
 
-This document complements:
-- `docs/architecture/ARCHITECTURE.md` for system-level design
-- `docs/dissertation/METHODOLOGY_MAPPING.md` for dissertation chapter mapping
-- `docs/FUTURE_ENHANCEMENTS.md` for extension planning
-
-Together, these provide a full architectural, research, and operational view of the DFAT system.
+This document complements `docs/architecture/ARCHITECTURE.md` for system-level design.

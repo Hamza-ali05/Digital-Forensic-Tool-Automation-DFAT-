@@ -109,6 +109,8 @@ curl -X PUT "$BASE/users/1/deactivate" -H "Authorization: Bearer $TOKEN"
 curl "$BASE/health"
 ```
 
+Returns `{"status": "ok", ...}` when the API process is serving requests.
+
 ### Readiness Check
 
 ```bash

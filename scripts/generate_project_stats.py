@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "dfat"
 FRONTEND_SRC = ROOT / "frontend" / "src"
-OUTPUT = ROOT / "docs" / "PROJECT_STATS.md"
+OUTPUT = ROOT / "reports" / "PROJECT_STATS.md"
 TESTS_ROOT = ROOT / "tests"
 
 FILE_TYPES = (".py", ".js", ".json", ".md", ".yml", ".yaml")
@@ -384,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
     import os
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--no-write", action="store_true", help="Skip writing docs/PROJECT_STATS.md")
+    parser.add_argument("--no-write", action="store_true", help="Skip writing reports/PROJECT_STATS.md")
     args = parser.parse_args(argv)
 
     backend_py = _iter_files(SRC, ".py")

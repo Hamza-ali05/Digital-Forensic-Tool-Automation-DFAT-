@@ -128,17 +128,7 @@ Docker lab stack: `docker compose -f docker-compose.dev.yml up --build`.
 | [Coding standards](docs/development/CODING_STANDARDS.md) | Python style and boundaries |
 | [Git workflow](docs/development/GIT_WORKFLOW.md) | Branches and Conventional Commits |
 | [Deployment](docs/deployment/DEPLOYMENT.md) | Docker, env vars, TLS, backup, monitoring |
-| [ADRs](docs/architecture/adr/README.md) | 24 architecture decision records |
-| [Frontend pages](frontend/PAGES.md) | Route ↔ permission ↔ API map |
-
-## Research context
-
-DFAT follows **Design Science Research** (Hevner et al., 2004): build a
-working artefact, then evaluate it with forensic benchmarks (DFRWS / CFReDS)
-and a locked usability instrument comparable to Tobin et al. Design choices
-favour reproducibility, ACPO-oriented audit, and GDPR-compatible
-**local-only** inference over cloud-scale operations
-([ADR-001](docs/architecture/adr/ADR-001-design-science-research.md)).
+| [ADRs](docs/architecture/adr/README.md) | Architecture decision records |
 
 ## License
 

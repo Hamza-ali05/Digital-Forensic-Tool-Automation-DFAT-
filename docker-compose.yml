@@ -6,7 +6,7 @@
 #
 # LLM note: the API accepts only loopback LLM URLs (ADR-017). The Ollama
 # service is included for model storage; enable fallback or run Ollama on the
-# host at 127.0.0.1 when using host-network deployment (see PRODUCTION_CHECKLIST.md).
+# host at 127.0.0.1 when using host-network deployment.
 
 services:
   backend:

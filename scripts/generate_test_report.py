@@ -18,8 +18,7 @@ from xml.etree import ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPORTS_DIR = REPO_ROOT / "reports"
-DOCS_TESTING_DIR = REPO_ROOT / "docs" / "testing"
-OUTPUT_PATH = DOCS_TESTING_DIR / "FINAL_TEST_REPORT.md"
+OUTPUT_PATH = REPORTS_DIR / "FINAL_TEST_REPORT.md"
 
 
 @dataclass
@@ -181,7 +180,7 @@ def build_report(run_results: list[CommandResult]) -> str:
     feature_report = read_json_report(REPORTS_DIR / "feature_verification.json")
     dsr_report = read_json_report(REPORTS_DIR / "dsr_verification.json")
 
-    DOCS_TESTING_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     now = datetime.now(UTC).isoformat()
 
     lines: list[str] = [

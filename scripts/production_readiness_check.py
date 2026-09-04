@@ -39,7 +39,6 @@ DEFAULT_JWT_SECRETS = frozenset(
 
 REQUIRED_DOCS = (
     "README.md",
-    "PRODUCTION_CHECKLIST.md",
     "docs/architecture/ARCHITECTURE.md",
     "docs/user-guide/QUICKSTART.md",
     "docs/user-guide/USER_MANUAL.md",
