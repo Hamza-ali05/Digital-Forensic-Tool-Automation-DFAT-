@@ -1,4 +1,4 @@
-"""Unit tests for usability response analyzer and Tobin comparison (Prompt 6.18)."""
+"""Unit tests for usability response analyzer and Tobin comparison."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Unit tests for LLMConfig and forensic system prompt (Prompt 5.20)."""
+"""Unit tests for LLMConfig and forensic system prompt."""
 
 from __future__ import annotations
 
@@ -46,4 +46,4 @@ def test_forensic_system_prompt_content() -> None:
     assert "do not fabricate" in prompt or "never fabricate" in prompt
     assert "uncertain" in prompt
     assert "critical" in prompt and "informational" in prompt
-
+

@@ -1,6 +1,6 @@
 """Local LLaMA-3 HTTP clients for Ollama and artefact analysis.
 
-``OllamaClient`` is the low-level async HTTP client (Prompt 5.2).
+``OllamaClient`` is the low-level async HTTP client.
 ``LegacyLocalLLMClient`` is the earlier sync HTTP ``IArtefactAnalyzer`` used by
 unit tests; production wiring uses the assembled client in
 ``dfat.ai_engine.analyzer.LocalLLMClient``.
@@ -521,7 +521,7 @@ class OllamaClient:
 class LegacyLocalLLMClient(IArtefactAnalyzer):
     """Legacy sync HTTP LLaMA-3 client for artefact triage and summarisation.
 
-    Prefer ``dfat.ai_engine.analyzer.LocalLLMClient`` for the full Prompt 5
+    Prefer ``dfat.ai_engine.analyzer.LocalLLMClient`` for the full phase 5
     pipeline (classify → validate → rank → summarize → monitor).
     """
 

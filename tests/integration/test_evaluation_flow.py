@@ -1,4 +1,4 @@
-"""Evaluation flow integration tests (Prompt 9.4)."""
+"""Evaluation flow integration tests."""
 
 from __future__ import annotations
 

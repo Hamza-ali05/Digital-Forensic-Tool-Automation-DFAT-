@@ -53,7 +53,7 @@ class SummarizationPromptBuilder:
         Args:
             ranked: Ranked artefacts from triage.
             timeline: Optional chronological timeline.
-            triage_summary: Optional Prompt 4 triage aggregation.
+            triage_summary: Optional phase 4 triage aggregation.
 
         Returns:
             Rendered (and truncated if needed) summary prompt.

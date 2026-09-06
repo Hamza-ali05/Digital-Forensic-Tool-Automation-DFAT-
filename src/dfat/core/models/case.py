@@ -39,11 +39,11 @@ class Case(BaseModel):
     """Full case lifecycle model.
 
     Wraps :class:`~dfat.core.models.evidence.CaseMetadata` for backward
-    compatibility with the Prompt 1 domain layer. Pipeline and acquisition
+    compatibility with the phase 1 domain layer. Pipeline and acquisition
     code continue to use ``CaseMetadata``; case management uses ``Case``.
 
     Attributes:
-        metadata: Embedded Prompt 1 case metadata.
+        metadata: Embedded phase 1 case metadata.
         status: Lifecycle status.
         investigators: Assigned investigators.
         lead_investigator_id: User ID of the lead investigator.

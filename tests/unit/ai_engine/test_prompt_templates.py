@@ -1,4 +1,4 @@
-"""Unit tests for ForensicPromptTemplates (Prompt 5.4)."""
+"""Unit tests for ForensicPromptTemplates."""
 
 from __future__ import annotations
 

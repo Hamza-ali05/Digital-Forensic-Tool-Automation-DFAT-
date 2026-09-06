@@ -1,4 +1,4 @@
-"""Unit tests for performance analytics (Prompt 6.14)."""
+"""Unit tests for performance analytics."""
 
 from __future__ import annotations
 

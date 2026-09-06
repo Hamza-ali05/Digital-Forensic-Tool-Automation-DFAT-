@@ -1,4 +1,4 @@
-"""Unit tests for StructuredOutputParser (Prompt 5.13)."""
+"""Unit tests for StructuredOutputParser."""
 
 from __future__ import annotations
 

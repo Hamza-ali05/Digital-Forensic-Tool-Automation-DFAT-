@@ -6,7 +6,7 @@ Accepted
 ## Context
 DFAT must initialise configuration, storage, database, authentication, forensic
 parsers, knowledge, AI, threat intelligence, reporting, evaluation, and background
-workers before accepting API traffic. Earlier Prompt 12 phases introduced
+workers before accepting API traffic. Earlier phase 12 phases introduced
 per-subsystem initialisers; without a single ordered orchestrator, startup races
 and partial readiness were hard to diagnose.
 

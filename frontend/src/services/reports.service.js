@@ -35,7 +35,7 @@ export async function getCustody(id) {
   return data;
 }
 
-/** Alias used by Prompt 8.16. */
+/** Alias used by phase 8.16. */
 export const getCustodyReport = getCustody;
 
 export async function getAuditTrail(id) {

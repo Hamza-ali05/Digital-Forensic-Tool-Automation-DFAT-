@@ -1,4 +1,4 @@
-"""Unit tests for HTML report exporter (Prompt 6.20 named suite)."""
+"""Unit tests for HTML report exporter (phase 6.20 named suite)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Unit tests for AI confidence scoring (Prompt 5.11)."""
+"""Unit tests for AI confidence scoring."""
 
 from __future__ import annotations
 

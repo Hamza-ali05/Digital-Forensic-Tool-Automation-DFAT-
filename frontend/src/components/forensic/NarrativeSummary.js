@@ -64,7 +64,8 @@ export function parseNarrativeMeta(markdown, jsonDoc) {
     (text.match(/\|\s*LLM model\s*\|\s*([^|]+)\|/i) || [])[1] ||
     "";
   const prompt =
-    (text.match(/\|\s*Prompt version\s*\|\s*([^|]+)\|/i) || [])[1] || "";
+    (text.match(/\|\s*(?:Prompt|Template)\s+version\s*\|\s*([^|]+)\|/i) ||
+      [])[1] || "";
   const confidenceLine =
     (text.match(/\*\*Confidence:\*\*\s*([0-9.]+)\s*%/i) || [])[1] ||
     (text.match(/\|\s*Confidence\s*\|\s*([0-9.]+)\s*%/i) || [])[1] ||
@@ -204,7 +205,7 @@ export default function NarrativeSummary({
             </Col>
             <Col xs={12} md={4}>
               <div className="small text-muted text-uppercase fw-bold">
-                Prompt version
+                Template version
               </div>
               <Badge bg="light" text="dark">
                 {meta.promptVersion}

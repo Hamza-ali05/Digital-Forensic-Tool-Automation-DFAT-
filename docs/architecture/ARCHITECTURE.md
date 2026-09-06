@@ -164,7 +164,7 @@ Cross-cutting middleware order on the request path:
 
 The complete catalogue is maintained in [`COMPONENT_CATALOGUE.md`](COMPONENT_CATALOGUE.md). The table below lists the principal architectural anchors.
 
-| Class / Component | Module | Prompt of Origin | Interface / Role |
+| Class / Component | Module | Origin | Interface / Role |
 |------------------|--------|------------------|------------------|
 | `ApplicationContainer` | `src/dfat/container.py` | 1-3 | DI composition root |
 | `ParserRegistry` | `src/dfat/pipeline/parser_registry.py` | 4 | parser registry / `IArtefactParser` consumer |
@@ -263,7 +263,7 @@ Client Browser
 
 ## ADR Index
 
-| ADR | Title | Prompt | Status |
+| ADR | Title | Phase | Status |
 |-----|-------|--------|--------|
 | [002](adr/ADR-002-local-llm-only.md) | Local LLM Only | 1 | Accepted |
 | [003](adr/ADR-003-dual-output-report.md) | Dual-Output Report Format | 1 | Accepted |
@@ -280,9 +280,9 @@ Client Browser
 | [014](adr/ADR-014-graceful-parser-degradation.md) | Graceful Parser Degradation | 4 | Accepted |
 | [015](adr/ADR-015-artefact-raw-data-contracts.md) | Artefact `raw_data` Contracts | 4 | Accepted |
 | [016](adr/ADR-016-rule-based-triage-first.md) | Rule-Based Triage First | 4 | Accepted |
-| [017](adr/017-local-llm-only.md) | Local LLM Only (Prompt 5) | 5 | Accepted |
+| [017](adr/017-local-llm-only.md) | Local LLM Only | 5 | Accepted |
 | [018](adr/018-hallucination-mitigation.md) | Hallucination Mitigation | 5 | Accepted |
-| [019](adr/019-prompt-versioning.md) | Prompt Versioning | 5 | Accepted |
+| [019](adr/019-prompt-versioning.md) | LLM Template Versioning | 5 | Accepted |
 | [020](adr/020-rule-based-triage-primary.md) | Rule-Based Triage Primary | 5 | Accepted |
 | [021](adr/021-json-layer-primary-record.md) | JSON Layer as Primary Evidential Record | 6 | Accepted |
 | [022](adr/022-report-schema-versioning.md) | Report Schema Versioning | 6 | Accepted |

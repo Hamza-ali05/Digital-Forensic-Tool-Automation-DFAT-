@@ -1,4 +1,4 @@
-"""Integration tests for evaluation API routes (Prompt 6.20)."""
+"""Integration tests for evaluation API routes."""
 
 from __future__ import annotations
 

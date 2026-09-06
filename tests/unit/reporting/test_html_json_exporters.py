@@ -1,4 +1,4 @@
-"""Unit tests for HTML and JSON file exporters (Prompt 6.7)."""
+"""Unit tests for HTML and JSON file exporters."""
 
 from __future__ import annotations
 

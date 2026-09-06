@@ -1,4 +1,4 @@
-"""Unit tests for benchmark comparator TP/FP/FN logic (Prompt 6.15)."""
+"""Unit tests for benchmark comparator TP/FP/FN logic."""
 
 from __future__ import annotations
 

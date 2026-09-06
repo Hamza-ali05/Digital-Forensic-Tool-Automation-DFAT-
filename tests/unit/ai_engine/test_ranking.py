@@ -1,4 +1,4 @@
-"""Unit tests for LLM relevance ranking (Prompt 5.7)."""
+"""Unit tests for LLM relevance ranking."""
 
 from __future__ import annotations
 

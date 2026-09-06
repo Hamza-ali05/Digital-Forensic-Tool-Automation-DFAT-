@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Prompt 11 dataset intelligence, knowledge, ML, and threat-intel components."""
+"""Verify phase 11 dataset intelligence, knowledge, ML, and threat-intel components."""
 
 from __future__ import annotations
 
@@ -105,7 +105,7 @@ async def verify_research_objectives(results: list[str]) -> None:
 
 async def main() -> int:
     results: list[str] = []
-    print("DFAT Prompt 11 Dataset Intelligence Verification")
+    print("DFAT phase 11 Dataset Intelligence Verification")
     print("=" * 72)
     try:
         await verify_dataset_intelligence(results)

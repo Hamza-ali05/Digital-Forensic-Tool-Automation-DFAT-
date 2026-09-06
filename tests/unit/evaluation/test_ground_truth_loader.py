@@ -1,4 +1,4 @@
-"""Unit tests for CFReDS handler and generic GroundTruthLoader (Prompt 6.12)."""
+"""Unit tests for CFReDS handler and generic GroundTruthLoader."""
 
 from __future__ import annotations
 

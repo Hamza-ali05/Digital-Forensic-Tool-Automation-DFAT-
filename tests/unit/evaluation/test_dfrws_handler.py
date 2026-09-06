@@ -1,4 +1,4 @@
-"""Unit tests for DFRWS ground truth handler (Prompt 6.11)."""
+"""Unit tests for DFRWS ground truth handler."""
 
 from __future__ import annotations
 

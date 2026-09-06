@@ -1,4 +1,4 @@
-"""Unit tests for investigator Q&A assistance (Prompt 5.14)."""
+"""Unit tests for investigator Q&A assistance."""
 
 from __future__ import annotations
 

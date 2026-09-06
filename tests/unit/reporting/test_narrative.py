@@ -1,4 +1,4 @@
-"""Unit tests for narrative report assembly (Prompt 6.4)."""
+"""Unit tests for narrative report assembly."""
 
 from __future__ import annotations
 
@@ -149,7 +149,7 @@ def test_template_renders_without_errors(
     assert report.evidence_id == "ev-narr-1"
 
 
-# Prompt 6.20 named coverage aliases
+# phase 6.20 named coverage aliases
 test_disclaimer_always_present = test_narrative_always_includes_disclaimer
 test_disclaimer_references_scanlon = test_disclaimer_references_model_and_prompt_version
 test_statistics_appendix_accurate = test_statistics_are_accurate

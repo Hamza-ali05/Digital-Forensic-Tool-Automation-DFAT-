@@ -13,7 +13,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response as StarletteResponse
 
-# Full API paths (Prompt 9.8 lists the suffix; the app is mounted at /api/v1).
+# Full API paths (phase 9.8 lists the suffix; the app is mounted at /api/v1).
 DEFAULT_CACHE_TTLS: dict[str, int] = {
     # Readiness is a live probe — caching it reports stale component state.
     "/api/v1/ai/health": 30,

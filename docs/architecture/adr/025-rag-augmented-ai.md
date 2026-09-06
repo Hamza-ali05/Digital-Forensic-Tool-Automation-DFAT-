@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-Prompt 11 extends DFAT with a local knowledge base (vector store, IOC database,
+phase 11 extends DFAT with a local knowledge base (vector store, IOC database,
 knowledge graph). Investigative AI summaries benefit from prior-case context, but
 must remain grounded in retrieved evidence rather than model parametric memory.
 

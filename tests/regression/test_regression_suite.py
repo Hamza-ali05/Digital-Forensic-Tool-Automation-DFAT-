@@ -1,4 +1,4 @@
-"""Regression tests for Prompt 9.12/9.13 bug fixes and cross-layer contracts."""
+"""Regression tests for phase 9.12/9.13 bug fixes and cross-layer contracts."""
 
 from __future__ import annotations
 

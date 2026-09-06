@@ -1,4 +1,4 @@
-"""Unit tests for metrics visualisation helpers (Prompt 6.15)."""
+"""Unit tests for metrics visualisation helpers."""
 
 from __future__ import annotations
 

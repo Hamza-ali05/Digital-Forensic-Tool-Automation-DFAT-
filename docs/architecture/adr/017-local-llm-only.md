@@ -1,4 +1,4 @@
-# ADR-017: Local LLM Only (Prompt 5 refinement)
+# ADR-017: Local LLM Only (phase 5 refinement)
 
 ## Status
 Accepted
@@ -6,7 +6,7 @@ Accepted
 ## Context
 DFAT processes chain-of-custody evidence. Transmitting artefact content or
 prompts to cloud inference APIs would violate GDPR and forensic integrity
-constraints (Scanlon et al., 2023). ADR-002 established the principle; Prompt 5
+constraints (Scanlon et al., 2023). ADR-002 established the principle; phase 5
 implements enforcement in `LLMConnectionManager` and `OllamaClient`.
 
 ## Decision
@@ -20,4 +20,4 @@ construction time. No cloud AI SDKs are permitted on the triage path.
 - Investigators must provision LLaMA-3 (or compatible) locally.
 - Complements ADR-006 / ADR-016 when the local runtime is unavailable.
 - Related: ADR-002.
-
+

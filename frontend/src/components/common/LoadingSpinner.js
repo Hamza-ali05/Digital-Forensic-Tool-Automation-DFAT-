@@ -9,7 +9,7 @@ const SIZE_MAP = {
 
 /**
  * Centred spinner with optional text.
- * Supports legacy ``show`` (Volt preloader) and Prompt 7.11 ``size`` / ``fullPage``.
+ * Supports legacy ``show`` (Volt preloader) and phase 7.11 ``size`` / ``fullPage``.
  *
  * @param {{
  *   size?: "sm"|"md"|"lg",

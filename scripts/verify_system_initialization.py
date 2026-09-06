@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Prompt 12 system initialization end-to-end.
+"""Verify phase 12 system initialization end-to-end.
 
 Boots DFAT in an isolated temporary directory, asserts critical phases,
 capabilities surface, optional test triage, and startup-report accuracy.

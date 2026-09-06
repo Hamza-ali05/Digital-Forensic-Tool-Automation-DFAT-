@@ -1,4 +1,4 @@
-"""Acceptance tests for Prompt 5.18 LocalLLMClient assembly and fallback."""
+"""Acceptance tests for phase 5.18 LocalLLMClient assembly and fallback."""
 
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def _assembled_client(
 
 
 def test_local_llm_client_is_iartefact_analyzer() -> None:
-    """Verify assembled client implements the Prompt 1 analyser port."""
+    """Verify assembled client implements the phase 1 analyser port."""
     client = _assembled_client()
     assert isinstance(client, IArtefactAnalyzer)
     assert client.analyzer_name == "LocalLLaMA3Client"
@@ -152,4 +152,4 @@ async def test_assembled_summarize_returns_non_empty(
     text = await client.summarize_async(ranked)
     assert isinstance(text, str)
     assert len(text) > 0
-
+

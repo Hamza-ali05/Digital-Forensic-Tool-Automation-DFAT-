@@ -1,5 +1,5 @@
 /**
- * Frontend RBAC mirror of `dfat.auth.rbac.ROLE_PERMISSIONS` (Prompt 2.6).
+ * Frontend RBAC mirror of `dfat.auth.rbac.ROLE_PERMISSIONS`.
  * Keep in sync with backend — admin wildcard via synthetic ``all`` resource.
  */
 

@@ -22,5 +22,5 @@ Critical failures (database, auth, audit, directories, reporting) still abort.
 ## Consequences
 - System status is `READY`, `DEGRADED`, or `UNAVAILABLE` — never silent partial boot.
 - UI shows `DegradedBanner` and admin System Status for operator visibility.
-- Benchmarks and reports remain valid under rule-based fallback (Prompt 12.14).
+- Benchmarks and reports remain valid under rule-based fallback.
 - Related: ADR-017, ADR-020, ADR-029.

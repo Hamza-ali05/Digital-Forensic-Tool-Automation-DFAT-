@@ -1,4 +1,4 @@
-"""Unit tests for hallucination mitigation (Prompt 5.20)."""
+"""Unit tests for hallucination mitigation."""
 
 from __future__ import annotations
 
@@ -59,4 +59,4 @@ def test_risk_level_assessment() -> None:
         "Definitely art-2 and art-3 prove malware_signature catastrophic compromise."
     )
     assert high.risk_level in {"medium", "high"}
-
+

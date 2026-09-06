@@ -72,7 +72,7 @@ class LLMRelevanceRanker:
         Args:
             classified: Classification results.
             artefacts: Source artefacts.
-            rule_based_scores: Optional Prompt 4 rule-engine scores by ID.
+            rule_based_scores: Optional phase 4 rule-engine scores by ID.
 
         Returns:
             Ranked artefacts sorted by suspicion (CRITICAL first) then score.

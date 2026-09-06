@@ -57,7 +57,7 @@ export const Routes = {
   ServerError: { path: "/500" },
 };
 
-// Lazy-loaded pages (code splitting — Prompt 8 fills real UIs)
+// Lazy-loaded pages (code splitting — phase 8 fills real UIs)
 const Dashboard = lazy(() => import("pages/Dashboard"));
 const Login = lazy(() => import("pages/auth/Login"));
 const Register = lazy(() => import("pages/auth/Register"));
@@ -123,7 +123,7 @@ const withSuspense = (node) => (
 
 /**
  * Authenticated dashboard shell with nested RR5 routes.
- * Mirrors the Prompt 7.9 children tree (RR6-style) on React Router 5.
+ * Mirrors the phase 7.9 children tree (RR6-style) on React Router 5.
  */
 function ProtectedApp() {
   return (
@@ -409,7 +409,7 @@ function ProtectedApp() {
 
 /**
  * Top-level route tree used by App.js.
- * React Router 5 equivalent of the Prompt 7.9 `routes` / `useRoutes` config.
+ * React Router 5 equivalent of the phase 7.9 `routes` / `useRoutes` config.
  */
 export function AppRoutes() {
   return (

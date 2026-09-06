@@ -1,4 +1,4 @@
-"""Unit tests for report integrity verification (Prompt 6.3)."""
+"""Unit tests for report integrity verification."""
 
 from __future__ import annotations
 
@@ -142,7 +142,7 @@ def test_embed_audit_metadata_fields() -> None:
     assert ReportSchemaValidator().validate(enriched).is_valid is True
 
 
-# Prompt 6.20 named coverage aliases
+# phase 6.20 named coverage aliases
 test_tampered_artefact_fails_verification = test_altered_artefact_data_fails_verification
 test_audit_metadata_embedded = test_embed_audit_metadata_fields
 test_file_verification_works = test_verify_report_file_round_trip

@@ -73,8 +73,8 @@ frontend/src/
   components/
     layout/         # Sidebar, Topbar, Footer, Breadcrumbs
     common/         # DataTable, StatusBadge, toasts, skeletons, …
-    forensic/       # Domain widgets (Prompt 8+)
-  pages/            # Route pages (placeholders until Prompt 8)
+    forensic/       # Domain widgets
+  pages/            # Route pages
   utils/            # constants, permissions, formatters, validators, storage
   __tests__/        # Unit/integration tests + MSW setup
 ```

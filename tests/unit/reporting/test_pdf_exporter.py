@@ -1,4 +1,4 @@
-"""Unit tests for PDF report exporter (Prompt 6.6)."""
+"""Unit tests for PDF report exporter."""
 
 from __future__ import annotations
 

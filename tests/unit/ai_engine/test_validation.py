@@ -1,4 +1,4 @@
-"""Unit tests for hallucination detection and response validation (Prompt 5.12)."""
+"""Unit tests for hallucination detection and response validation."""
 
 from __future__ import annotations
 

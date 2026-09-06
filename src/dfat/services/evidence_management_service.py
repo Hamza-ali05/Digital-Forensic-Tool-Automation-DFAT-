@@ -1,4 +1,4 @@
-"""Enhanced evidence management composing Prompt 2 ``EvidenceService``."""
+"""Enhanced evidence management composing phase 2 ``EvidenceService``."""
 
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ class EvidenceManagementService:
         """Initialise the enhanced evidence management service.
 
         Args:
-            evidence_service: Prompt 2 evidence registration service.
+            evidence_service: phase 2 evidence registration service.
             validation_service: Format/MIME/hash validation service.
             hash_service: Multi-algorithm hash service.
             custody_service: Chain-of-custody service.

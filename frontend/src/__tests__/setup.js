@@ -1,5 +1,5 @@
 /**
- * Prompt 7.15 setup entrypoint (discovered under ``__tests__/``).
+ * phase 7.15 setup entrypoint (discovered under ``__tests__/``).
  * Runtime hooks are registered via ``src/setupTests.js`` → ``test-utils/setup.js``.
  */
 import { server, handlers } from "../test-utils/msw/server";

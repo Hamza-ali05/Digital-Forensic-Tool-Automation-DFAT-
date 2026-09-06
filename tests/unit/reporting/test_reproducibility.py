@@ -1,4 +1,4 @@
-"""Unit tests for reproducibility verification (Prompt 6.10)."""
+"""Unit tests for reproducibility verification."""
 
 from __future__ import annotations
 
@@ -118,7 +118,7 @@ def test_verify_determinism_false_when_hash_wrong() -> None:
     assert ReproducibilityVerifier().verify_determinism(report) is False
 
 
-# Prompt 6.20 named coverage
+# phase 6.20 named coverage
 test_identical_input_reproducible = test_identical_reports_are_reproducible
 test_diff_identifies_changes = test_altered_reports_produce_detailed_diff
 

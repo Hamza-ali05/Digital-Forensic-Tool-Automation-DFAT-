@@ -1,4 +1,4 @@
-"""Unit tests for investigative summarisation (Prompt 5.20)."""
+"""Unit tests for investigative summarisation."""
 
 from __future__ import annotations
 
@@ -143,4 +143,4 @@ async def test_summary_handles_llm_failure(mock_audit_logger: MagicMock) -> None
     )
     assert "fallback" in result.full_text.lower() or "unavailable" in result.full_text.lower()
     assert "EXECUTIVE SUMMARY" in result.full_text
-
+

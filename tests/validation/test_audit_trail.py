@@ -1,4 +1,4 @@
-"""Validation tests for the forensic audit trail (Prompt 9.12)."""
+"""Validation tests for the forensic audit trail."""
 
 from __future__ import annotations
 

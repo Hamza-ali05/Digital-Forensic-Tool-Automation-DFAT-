@@ -1,4 +1,4 @@
-"""Integration tests for pipeline intelligence sources (Prompt 12.14)."""
+"""Integration tests for pipeline intelligence sources."""
 
 from __future__ import annotations
 

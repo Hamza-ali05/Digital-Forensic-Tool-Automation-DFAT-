@@ -1,4 +1,4 @@
-"""Graceful degradation and recovery integration tests (Prompt 12.14)."""
+"""Graceful degradation and recovery integration tests."""
 
 from __future__ import annotations
 

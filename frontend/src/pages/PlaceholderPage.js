@@ -2,7 +2,7 @@ import React from "react";
 import { Card, Container } from "@themesberg/react-bootstrap";
 
 /**
- * Lightweight placeholder for DFAT sections pending Prompt 8 pages.
+ * Lightweight placeholder for DFAT sections that are not implemented yet.
  */
 export default ({ title = "Section", description = "" }) => (
   <Container fluid className="px-0">
@@ -14,7 +14,7 @@ export default ({ title = "Section", description = "" }) => (
     <Card border="light" className="shadow-sm">
       <Card.Body>
         <Card.Text className="mb-0 text-muted">
-          {description || `${title} content will be implemented in Prompt 8.`}
+          {description || `${title} content is not available yet.`}
         </Card.Text>
       </Card.Body>
     </Card>

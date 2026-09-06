@@ -1,4 +1,4 @@
-"""Shared helpers for Prompt 12.14 full-system boot integration tests."""
+"""Shared helpers for phase 12.14 full-system boot integration tests."""
 
 from __future__ import annotations
 

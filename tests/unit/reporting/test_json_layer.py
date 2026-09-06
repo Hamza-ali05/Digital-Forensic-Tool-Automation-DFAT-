@@ -1,4 +1,4 @@
-"""Unit tests for structured JSON report export (Prompt 6.2)."""
+"""Unit tests for structured JSON report export."""
 
 from __future__ import annotations
 
@@ -245,7 +245,7 @@ def test_export_artefact_data_matches_ranked_count(
     assert len(report.artefact_data) == len(sample_ranked_artefacts)
 
 
-# Prompt 6.20 named coverage aliases / extensions
+# phase 6.20 named coverage aliases / extensions
 test_export_deterministic_hash = test_export_hash_is_deterministic_for_same_artefacts
 test_artefacts_sorted_deterministically = test_export_sorts_artefacts_by_category_then_id
 test_summary_statistics_correct = test_export_summary_statistics_include_zero_counts

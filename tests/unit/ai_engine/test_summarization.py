@@ -1,4 +1,4 @@
-"""Unit tests for LLM investigative summarization (Prompt 5.8)."""
+"""Unit tests for LLM investigative summarization."""
 
 from __future__ import annotations
 

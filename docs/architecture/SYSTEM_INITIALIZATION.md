@@ -1,6 +1,6 @@
 # System Initialization
 
-DFAT starts through `BootSequencer`, which coordinates every Prompt 12
+DFAT starts through `BootSequencer`, which coordinates every phase 12
 initialiser in dependency order and emits a `StartupReport` consumed by the API
 (`/api/v1/system/startup`), the frontend startup screen, and
 `scripts/verify_system_initialization.py`.
@@ -84,7 +84,7 @@ RAG pipeline, evaluation, background workers.
   listed in phase details.
 - **Empty datasets:** discovery completes with `total_discovered=0` — valid.
 - **No knowledge / ML:** RAG and ML scoring disabled; rule triage and reporting
-  continue (see Prompt 12.14 integration tests).
+  continue (see phase 12.14 integration tests).
 
 ## Recovery Procedures
 
@@ -102,7 +102,7 @@ jobs, flushes audit buffers, and disposes the DB engine.
 
 ```bash
 make verify-system-init   # boots isolated env, checks phases/capabilities
-make test-prompt12        # unit + integration + frontend Prompt 12 suite
+make test-boot-suite        # unit + integration + frontend phase 12 suite
 make test-boot            # boot scenario integration tests
 ```
 

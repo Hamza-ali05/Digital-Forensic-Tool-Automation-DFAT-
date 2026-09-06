@@ -1,4 +1,4 @@
-"""Unit tests for artefact serialisation (Prompt 5.20)."""
+"""Unit tests for artefact serialisation."""
 
 from __future__ import annotations
 
@@ -91,4 +91,4 @@ def test_serialize_for_classification_compact() -> None:
     assert "name=cmd.exe" in text or "cmd.exe" in text
     assert "[art-2]" in text
     assert "\n" in text
-
+

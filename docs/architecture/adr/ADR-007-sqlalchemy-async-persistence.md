@@ -11,7 +11,7 @@ audit persistence require structured storage beyond JSON files on disk.
 ## Decision
 Adopt SQLAlchemy 2.0 async with SQLite for development and optional
 PostgreSQL for production. ORM models are separate from Pydantic domain models.
-The `IRepository` interface from Prompt 1 remains unchanged — only
+The `IRepository` interface from phase 1 remains unchanged — only
 implementations evolve (async SQLAlchemy repos for the API path; file-based
 repos retained as fallbacks for the sync pipeline).
 

@@ -4,7 +4,7 @@ const { defineConfig, devices } = require("@playwright/test");
 
 const repoRoot = path.resolve(__dirname, "..");
 const isCI = Boolean(process.env.CI);
-// Allow reusing local servers unless explicitly disabled (Cursor shells often set CI=true).
+// Allow reusing local servers unless explicitly disabled (some shells set CI=true).
 const reuseServer = process.env.PW_NO_REUSE !== "1";
 
 /**

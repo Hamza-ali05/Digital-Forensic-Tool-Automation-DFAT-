@@ -22,4 +22,4 @@ all linked evidence custody chains.
 - Corrections require compensating append entries, never in-place edits.
 - Integrity failures block ACCESS recording and surface via verification reports.
 - Insert-only design simplifies forensic review and aligns with audit_log
-  immutability from Prompt 2.
+  immutability from phase 2.

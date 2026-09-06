@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-Prompt 11 adds ML models for artefact scoring. ADR-016/020 establish rule-based
+phase 11 adds ML models for artefact scoring. ADR-016/020 establish rule-based
 triage as the primary, explainable path. ML must improve ranking without
 superseding deterministic forensic logic or breaking dissertation RQ baselines.
 

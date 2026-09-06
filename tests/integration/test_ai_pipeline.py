@@ -1,4 +1,4 @@
-"""Integration tests for AI triage flow with mocked LLM (Prompt 5.20)."""
+"""Integration tests for AI triage flow with mocked LLM."""
 
 from __future__ import annotations
 

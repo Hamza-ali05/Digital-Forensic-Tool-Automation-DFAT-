@@ -1,4 +1,4 @@
-"""Unit tests for audit trail report generation (Prompt 6.9)."""
+"""Unit tests for audit trail report generation."""
 
 from __future__ import annotations
 

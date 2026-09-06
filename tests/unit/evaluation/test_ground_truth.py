@@ -1,4 +1,4 @@
-"""Unit tests for ground-truth fixtures and loaders (Prompt 6.20)."""
+"""Unit tests for ground-truth fixtures and loaders."""
 
 from __future__ import annotations
 

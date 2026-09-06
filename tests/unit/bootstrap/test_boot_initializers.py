@@ -1,4 +1,4 @@
-"""Unit tests for Prompt 12.5 initializers (dataset, knowledge, AI, threat-intel, evaluation)."""
+"""Unit tests for phase 12.5 initializers (dataset, knowledge, AI, threat-intel, evaluation)."""
 
 from __future__ import annotations
 

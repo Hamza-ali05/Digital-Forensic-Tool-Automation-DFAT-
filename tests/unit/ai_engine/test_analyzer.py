@@ -1,4 +1,4 @@
-"""Unit tests for assembled LocalLLMClient and rule-based fallback (Prompt 5.20)."""
+"""Unit tests for assembled LocalLLMClient and rule-based fallback."""
 
 from __future__ import annotations
 
@@ -139,4 +139,4 @@ def test_rule_based_fallback_always_available() -> None:
     analyzer = RuleBasedAnalyzer()
     assert analyzer.is_available() is True
     assert isinstance(analyzer, IArtefactAnalyzer)
-
+

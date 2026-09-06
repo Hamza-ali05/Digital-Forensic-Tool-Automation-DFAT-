@@ -1,4 +1,4 @@
-"""Unit tests for report schema validation (Prompt 6.1)."""
+"""Unit tests for report schema validation."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Integration tests for the full DFAT bootstrap sequence (Prompt 12.14)."""
+"""Integration tests for the full DFAT bootstrap sequence."""
 
 from __future__ import annotations
 

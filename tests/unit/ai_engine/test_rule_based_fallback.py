@@ -10,7 +10,7 @@ from dfat.core.models.artefact import ArtefactSet
 def test_analyze_ranks_mimikatz_above_informational(
     sample_artefact_set: ArtefactSet,
 ) -> None:
-    """Verify mimikatz.exe is elevated by Prompt 4 rule-based triage."""
+    """Verify mimikatz.exe is elevated by phase 4 rule-based triage."""
     # Arrange
     analyzer = RuleBasedAnalyzer()
 

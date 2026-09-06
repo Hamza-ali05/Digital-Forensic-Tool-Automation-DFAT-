@@ -1,4 +1,4 @@
-"""Unit tests for investigator Q&A assistant (Prompt 5.20)."""
+"""Unit tests for investigator Q&A assistant."""
 
 from __future__ import annotations
 
@@ -107,4 +107,4 @@ async def test_hallucination_check_on_answer(mock_audit_logger: MagicMock) -> No
     result = await assistant.ask("Is there malware?", artefact_set)
     assert result.hallucination_check is not None
     assert result.hallucination_check.risk_level in {"low", "medium", "high"}
-
+

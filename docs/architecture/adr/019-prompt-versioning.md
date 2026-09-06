@@ -1,10 +1,10 @@
-# ADR-019: Prompt Versioning for Reproducibility
+# ADR-019: LLM Template Versioning for Reproducibility
 
 ## Status
 Accepted
 
 ## Context
-LLM triage outputs must be reproducible for evaluation and peer review. Prompt
+LLM triage outputs must be reproducible for evaluation and peer review. Template
 drift between runs would invalidate benchmark comparisons and audit trails.
 
 ## Decision
@@ -21,4 +21,4 @@ templates under the AI engine remain the single source of rendered prompts
 - Benchmarks and `AIAnalysisRecordORM` rows can be correlated by prompt version.
 - Investigators can reproduce a run given model name + prompt version + inputs.
 - Documentation and OpenAPI responses surface version metadata where applicable.
-
+

@@ -1,4 +1,4 @@
-"""Integration tests for end-to-end reporting pipeline (Prompt 6.20)."""
+"""Integration tests for end-to-end reporting pipeline."""
 
 from __future__ import annotations
 

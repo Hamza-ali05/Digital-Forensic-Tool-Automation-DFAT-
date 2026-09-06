@@ -1,4 +1,4 @@
-"""Unit tests for AI response cache (Prompt 5.20)."""
+"""Unit tests for AI response cache."""
 
 from __future__ import annotations
 
@@ -60,4 +60,4 @@ async def test_cache_stats_accuracy() -> None:
     assert stats.total_misses == 1
     assert stats.current_size == 1
     assert stats.max_size == 5
-
+

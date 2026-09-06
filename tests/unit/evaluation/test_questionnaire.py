@@ -1,4 +1,4 @@
-"""Unit tests for usability questionnaire instrument (Prompt 6.16)."""
+"""Unit tests for usability questionnaire instrument."""
 
 from __future__ import annotations
 

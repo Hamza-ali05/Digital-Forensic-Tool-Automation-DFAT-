@@ -14,7 +14,7 @@ export async function getById(id) {
   return data;
 }
 
-/** Alias for Prompt 8.9 naming. */
+/** Alias for phase 8.9 naming. */
 export const getJob = getById;
 
 export async function getProgress(id) {

@@ -1,4 +1,4 @@
-"""Unit tests for AI response caching (Prompt 5.16)."""
+"""Unit tests for AI response caching."""
 
 from __future__ import annotations
 

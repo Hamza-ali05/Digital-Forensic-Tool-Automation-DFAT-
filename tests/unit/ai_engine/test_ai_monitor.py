@@ -1,4 +1,4 @@
-"""Unit tests for AI monitoring and telemetry (Prompt 5.17)."""
+"""Unit tests for AI monitoring and telemetry."""
 
 from __future__ import annotations
 

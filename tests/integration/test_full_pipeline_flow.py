@@ -1,4 +1,4 @@
-"""Full pipeline flow integration tests with mocked forensic libraries (Prompt 9.4)."""
+"""Full pipeline flow integration tests with mocked forensic libraries."""
 
 from __future__ import annotations
 

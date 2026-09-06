@@ -1,4 +1,4 @@
-"""Unit tests for dual-output report builder (Prompt 6.5)."""
+"""Unit tests for dual-output report builder."""
 
 from __future__ import annotations
 
@@ -187,7 +187,7 @@ def test_build_complete_report_records_audit_entries(
     assert "REPORT_GENERATED" in actions
 
 
-# Prompt 6.20 named coverage aliases
+# phase 6.20 named coverage aliases
 test_implements_ireport_generator = test_builder_is_ireport_generator
 test_build_complete_produces_forensic_report = test_build_complete_report_includes_json_and_narrative
 test_audit_entries_logged = test_build_complete_report_records_audit_entries

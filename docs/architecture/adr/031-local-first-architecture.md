@@ -10,7 +10,7 @@ evidentiary isolation and the dissertation’s local-LLM constraints (ADR-017,
 ADR-026).
 
 ## Decision
-All Prompt 12 bootstrap and runtime monitoring assume local infrastructure:
+All phase 12 bootstrap and runtime monitoring assume local infrastructure:
 - SQLite / local PostgreSQL for metadata.
 - Local Ollama for LLM (localhost-only URL validation).
 - Local ChromaDB / sentence-transformers for embeddings.

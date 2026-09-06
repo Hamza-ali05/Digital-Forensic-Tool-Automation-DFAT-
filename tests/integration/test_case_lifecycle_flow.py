@@ -1,4 +1,4 @@
-"""Case lifecycle multi-step API integration flows (Prompt 9.4)."""
+"""Case lifecycle multi-step API integration flows."""
 
 from __future__ import annotations
 

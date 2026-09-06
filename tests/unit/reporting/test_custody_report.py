@@ -1,4 +1,4 @@
-"""Unit tests for chain-of-custody report generation (Prompt 6.8)."""
+"""Unit tests for chain-of-custody report generation."""
 
 from __future__ import annotations
 

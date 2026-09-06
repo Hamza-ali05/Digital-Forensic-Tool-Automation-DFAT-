@@ -1,4 +1,4 @@
-"""Evidence management workflow integration tests (Prompt 9.4)."""
+"""Evidence management workflow integration tests."""
 
 from __future__ import annotations
 

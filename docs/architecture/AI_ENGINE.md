@@ -59,7 +59,7 @@ flowchart TD
   FB --> DB
 ```
 
-## Prompt templates
+## LLM templates
 
 | Template | Purpose | Notes |
 |----------|---------|--------|
@@ -142,4 +142,4 @@ Classification and other AI ops persist telemetry in `ai_analysis_records`.
 - ADR-018 — hallucination mitigation
 - ADR-019 — prompt versioning
 - ADR-003 — dual-output JSON authority
-
+

@@ -1,4 +1,4 @@
-# Security fixes (Prompt 9.10)
+# Security fixes
 
 This note records hardening applied after Bandit review and the
 `tests/security/` suite. All HIGH and MEDIUM Bandit findings are resolved

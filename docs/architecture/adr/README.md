@@ -19,9 +19,9 @@ DFAT ADRs capture research-oriented design choices for the DSR artefact.
 | [ADR-014](ADR-014-graceful-parser-degradation.md) | Graceful Parser Degradation |
 | [ADR-015](ADR-015-artefact-raw-data-contracts.md) | Artefact `raw_data` Contracts |
 | [ADR-016](ADR-016-rule-based-triage-first.md) | Rule-Based Triage First |
-| [ADR-017](017-local-llm-only.md) | Local LLM Only (Prompt 5) |
+| [ADR-017](017-local-llm-only.md) | Local LLM Only |
 | [ADR-018](018-hallucination-mitigation.md) | Hallucination Mitigation |
-| [ADR-019](019-prompt-versioning.md) | Prompt Versioning |
+| [ADR-019](019-prompt-versioning.md) | LLM Template Versioning |
 | [ADR-020](020-rule-based-triage-primary.md) | Rule-Based Triage Primary |
 | [ADR-021](021-json-layer-primary-record.md) | JSON Layer as Primary Evidential Record |
 | [ADR-022](022-report-schema-versioning.md) | Report Schema Versioning |

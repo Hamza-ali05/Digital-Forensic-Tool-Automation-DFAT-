@@ -434,7 +434,7 @@ def fixtures_dir() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Prompt 2 fixtures — database, auth, and API client
+# phase 2 fixtures — database, auth, and API client
 # ---------------------------------------------------------------------------
 
 
@@ -678,7 +678,7 @@ async def app_client(
     container.pipeline.pipeline_orchestrator.reset()
 
     client = TestClient(app)
-    # Convenience attributes for Prompt 1 route tests (auth required).
+    # Convenience attributes for phase 1 route tests (auth required).
     client.admin_token = _make_token(jwt_handler, seeded_db, "admin")  # type: ignore[attr-defined]
     client.analyst_token = _make_token(jwt_handler, seeded_db, "analyst")  # type: ignore[attr-defined]
     client.viewer_token = _make_token(jwt_handler, seeded_db, "viewer")  # type: ignore[attr-defined]
@@ -699,7 +699,7 @@ async def app_client(
 
 
 # ---------------------------------------------------------------------------
-# Prompt 3 fixtures — case / evidence management
+# phase 3 fixtures — case / evidence management
 # ---------------------------------------------------------------------------
 
 
@@ -793,7 +793,7 @@ async def seeded_case_db(
 
 
 # ---------------------------------------------------------------------------
-# Prompt 4 fixtures — parsers, pipeline context, volatility
+# phase 4 fixtures — parsers, pipeline context, volatility
 # ---------------------------------------------------------------------------
 
 

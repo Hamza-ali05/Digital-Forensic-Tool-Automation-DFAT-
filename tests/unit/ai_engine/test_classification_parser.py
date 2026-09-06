@@ -1,4 +1,4 @@
-"""Unit tests for classification response parsing (Prompt 5.6)."""
+"""Unit tests for classification response parsing."""
 
 from __future__ import annotations
 

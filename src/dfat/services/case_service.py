@@ -506,7 +506,7 @@ class CaseService:
     ) -> list[str]:
         """Mark linked evidence as archived with the case (audit + metadata note).
 
-        Evidence domain models do not carry Prompt 3 status; archival is recorded
+        Evidence domain models do not carry phase 3 status; archival is recorded
         via audit and by ensuring custody is sealed. Status-column updates are
         deferred to the evidence-management service layer.
         """

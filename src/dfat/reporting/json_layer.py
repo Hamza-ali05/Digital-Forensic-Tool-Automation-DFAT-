@@ -47,7 +47,7 @@ class StructuredJSONExporter:
         """Initialise the exporter.
 
         Args:
-            schema_validator: Report schema validator (Prompt 6.1).
+            schema_validator: Report schema validator.
             hash_algorithm: Algorithm for artefact integrity hashing.
         """
         self._validator = schema_validator

@@ -1,4 +1,4 @@
-"""Unit tests for anonymised usability response collection (Prompt 6.17)."""
+"""Unit tests for anonymised usability response collection."""
 
 from __future__ import annotations
 

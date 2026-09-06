@@ -108,7 +108,7 @@ pipeline:
   volatility_plugins_timeout: 300
   enable_memory_registry: true
 
-# Dataset intelligence extension package (Prompt 11 additive subsystem).
+# Dataset intelligence extension package (phase 11 additive subsystem).
 dataset_intelligence:
   datasets_dir: data/datasets
   scan_on_startup: true
@@ -139,7 +139,7 @@ dataset_intelligence:
   ml_models_path: data/ml/models
   experiments_path: data/ml/experiments
 
-# Local ML lifecycle (Prompt 11 Group D).
+# Local ML lifecycle (phase 11 Group D).
 ml:
   models_dir: data/ml/models
   experiments_dir: data/ml/experiments

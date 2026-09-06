@@ -1,4 +1,4 @@
-"""Unit tests for evaluation metrics calculator (Prompt 6.13)."""
+"""Unit tests for evaluation metrics calculator."""
 
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ def test_compute_per_category_independently() -> None:
     assert per_cat["registry_key"]["f1"] == 0.0
 
 
-# Prompt 6.20 named coverage aliases
+# phase 6.20 named coverage aliases
 test_precision_correct = test_compute_precision_with_known_tp_fp
 test_recall_correct = test_compute_recall_with_known_tp_fn
 test_f1_correct = test_compute_f1_with_known_precision_recall

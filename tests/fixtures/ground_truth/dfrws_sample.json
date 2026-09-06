@@ -1,7 +1,7 @@
 {
   "dataset_name": "dfrws_sample",
   "source": "dfrws",
-  "description": "DFRWS-format 10-artefact ground truth fixture for Prompt 6 evaluation tests",
+  "description": "DFRWS-format 10-artefact ground truth fixture for phase 6 evaluation tests",
   "artefacts": [
     {
       "category": "filesystem_metadata",

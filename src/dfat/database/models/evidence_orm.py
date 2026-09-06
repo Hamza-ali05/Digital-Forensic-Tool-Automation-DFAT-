@@ -14,8 +14,8 @@ from dfat.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 class EvidenceRecordORM(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     """Persisted evidence metadata and integrity hash reference.
 
-    ``case_id`` stores the Prompt 1 ``CaseMetadata.case_id`` and correlates with
-    ``cases.id`` when a case-management row exists. Prompt 3 additive columns
+    ``case_id`` stores the phase 1 ``CaseMetadata.case_id`` and correlates with
+    ``cases.id`` when a case-management row exists. phase 3 additive columns
     ``status``, ``hash_md5``, and ``hash_sha1`` are nullable for backward
     compatibility with existing rows.
     """
@@ -43,7 +43,7 @@ class EvidenceRecordORM(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("users.id"),
         nullable=True,
     )
-    # Prompt 3 additive columns (nullable — existing rows remain valid).
+    # phase 3 additive columns (nullable — existing rows remain valid).
     status: Mapped[Optional[str]] = mapped_column(
         String(30),
         nullable=True,

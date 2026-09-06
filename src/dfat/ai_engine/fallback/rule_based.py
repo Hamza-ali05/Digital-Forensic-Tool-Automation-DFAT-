@@ -1,6 +1,6 @@
 """Rule-based AI triage fallback (no LLM dependency).
 
-Uses the Prompt 4 ``RuleBasedTriageEngine`` for deterministic ranking when
+Uses the phase 4 ``RuleBasedTriageEngine`` for deterministic ranking when
 the local LLM is unavailable.
 """
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class RuleBasedAnalyzer(IArtefactAnalyzer):
     """Deterministic fallback analyzer. No LLM dependency.
 
-    Uses the rule-based triage engine from Prompt 4.
+    Uses the rule-based triage engine from phase 4.
     """
 
     def __init__(
@@ -37,7 +37,7 @@ class RuleBasedAnalyzer(IArtefactAnalyzer):
         """Initialise the rule-based fallback analyser.
 
         Args:
-            rule_engine: Prompt 4 triage engine (default constructed if omitted).
+            rule_engine: phase 4 triage engine (default constructed if omitted).
             triage_aggregator: Aggregator for template summaries.
             audit_logger: Optional forensic audit logger.
         """

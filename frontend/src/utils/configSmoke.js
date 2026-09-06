@@ -1,6 +1,6 @@
 /**
  * Smoke import for absolute path resolution (jsconfig baseUrl=src).
- * Not executed in production UI — kept for Prompt 7.4 verification.
+ * Not executed in production UI — kept for phase 7.4 verification.
  */
 import config from "config";
 import { API_ENDPOINTS } from "config/api.config";

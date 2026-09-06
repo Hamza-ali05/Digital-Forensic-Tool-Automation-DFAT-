@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-Prompt 1 provided `CaseMetadata` as a lightweight evidence association record.
+phase 1 provided `CaseMetadata` as a lightweight evidence association record.
 Operational investigations require a full case lifecycle (open → active → review →
 close → archive), investigator assignment, and evidence linkage before pipeline
 execution. ACPO-aligned handling also needs lead accountability before a case
@@ -25,4 +25,4 @@ thin wrappers with RBAC on the additive `cases` resource.
 ## Consequences
 - Pipeline/acquisition code continues to use `CaseMetadata` unchanged.
 - Invalid transitions raise `InvalidCaseTransitionError` (HTTP 409).
-- Case APIs are additive; Prompt 2 evidence registration routes remain intact.
+- Case APIs are additive; phase 2 evidence registration routes remain intact.

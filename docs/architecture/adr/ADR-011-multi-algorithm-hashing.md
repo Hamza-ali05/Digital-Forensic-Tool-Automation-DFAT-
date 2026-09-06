@@ -14,7 +14,7 @@ Add `MultiHashService` that computes MD5 + SHA-1 + SHA-256 in a **single
 read-only file pass**, returning a `HashSet`. Verification compares all three
 digests and raises `IntegrityVerificationError` with per-algorithm mismatch
 details. The existing `shared.hashing` helpers remain untouched and continue to
-serve Prompt 1 acquisition paths.
+serve phase 1 acquisition paths.
 
 Evidence validation, custody recording, and integrity verification APIs consume
 `MultiHashService` / `HashSet` without writing digests back to evidence files.

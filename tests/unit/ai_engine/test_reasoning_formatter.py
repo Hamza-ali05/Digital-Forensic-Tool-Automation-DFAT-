@@ -1,4 +1,4 @@
-"""Unit tests for explainable reasoning formatter (Prompt 5.15)."""
+"""Unit tests for explainable reasoning formatter."""
 
 from __future__ import annotations
 

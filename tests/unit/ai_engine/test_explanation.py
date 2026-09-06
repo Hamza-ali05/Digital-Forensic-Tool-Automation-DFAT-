@@ -1,4 +1,4 @@
-"""Unit tests for per-artefact explanation generation (Prompt 5.10)."""
+"""Unit tests for per-artefact explanation generation."""
 
 from __future__ import annotations
 

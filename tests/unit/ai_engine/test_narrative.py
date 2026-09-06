@@ -1,4 +1,4 @@
-"""Unit tests for narrative formatting (Prompt 5.9)."""
+"""Unit tests for narrative formatting."""
 
 from __future__ import annotations
 

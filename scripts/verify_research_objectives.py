@@ -313,8 +313,8 @@ class ResearchObjectiveVerifier:
                 and "BOOT_SEQUENCE" in boot_sequencer.read_text(encoding="utf-8")
                 and recovery.exists()
                 and "attempt_recovery" in recovery.read_text(encoding="utf-8"),
-                "Prompt 12 boot sequencer and recovery manager remain available for local LLM degradation.",
-                "Prompt 12 boot/recovery components are missing or incomplete.",
+                "phase 12 boot sequencer and recovery manager remain available for local LLM degradation.",
+                "phase 12 boot/recovery components are missing or incomplete.",
             )
         )
 
@@ -624,11 +624,11 @@ class ResearchObjectiveVerifier:
             await self.verify_rq5(),
         ]
         self.print_report(results)
-        self._assert_prompt12_docs_present()
+        self._assert_boot_docs_present()
         return results
 
-    def _assert_prompt12_docs_present(self) -> None:
-        """Print Prompt 12 documentation presence (does not alter RQ pass/fail)."""
+    def _assert_boot_docs_present(self) -> None:
+        """Print boot documentation presence (does not alter RQ pass/fail)."""
         docs = [
             self.repo_root / "docs" / "architecture" / "adr" / "029-boot-sequence-dependency-order.md",
             self.repo_root / "docs" / "architecture" / "adr" / "030-graceful-degradation-philosophy.md",
@@ -636,7 +636,7 @@ class ResearchObjectiveVerifier:
             self.repo_root / "docs" / "architecture" / "SYSTEM_INITIALIZATION.md",
             self.repo_root / "docs" / "operations" / "TROUBLESHOOTING.md",
         ]
-        print("Prompt 12 documentation")
+        print("Boot documentation")
         print("-" * 72)
         for path in docs:
             status = "PASS" if path.exists() else "FAIL"

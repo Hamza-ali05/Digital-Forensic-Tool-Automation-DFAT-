@@ -1,6 +1,6 @@
 /**
  * Relative API path map for DFAT backend (`/api/v1` prefix applied via apiBaseUrl).
- * Covers the Prompt 7 inventory plus known Prompt 6 extras used by services later.
+ * Covers the phase 7 inventory plus known phase 6 extras used by services later.
  */
 export const API_ENDPOINTS = {
   AUTH: {
