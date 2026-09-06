@@ -160,18 +160,21 @@ class UserService:
             raise InvalidCredentialsError()
         if not user.is_active:
             raise AccountDisabledError(context={"username": username})
-        if self._is_locked(user):
+        # max_login_attempts <= 0 disables lockout entirely.
+        lockout_enabled = self._auth_settings.max_login_attempts > 0
+        if lockout_enabled and self._is_locked(user):
             raise AccountLockedError(locked_until=user.locked_until)
 
         if not self._password_hasher.verify_password(password, user.hashed_password):
             await self._user_repo.increment_failed_attempts(user.id)
-            refreshed = await self._user_repo.get(user.id)
-            attempts = refreshed.failed_login_attempts if refreshed else 0
-            if attempts >= self._auth_settings.max_login_attempts:
-                until = datetime.now(UTC) + timedelta(
-                    minutes=self._auth_settings.lockout_duration_minutes
-                )
-                await self._user_repo.lock_user(user.id, until)
+            if lockout_enabled:
+                refreshed = await self._user_repo.get(user.id)
+                attempts = refreshed.failed_login_attempts if refreshed else 0
+                if attempts >= self._auth_settings.max_login_attempts:
+                    until = datetime.now(UTC) + timedelta(
+                        minutes=self._auth_settings.lockout_duration_minutes
+                    )
+                    await self._user_repo.lock_user(user.id, until)
             raise InvalidCredentialsError()
 
         await self._user_repo.reset_failed_attempts(user.id)

@@ -114,14 +114,18 @@ class DatabaseSettings(BaseModel):
 
 
 class AuthSettings(BaseModel):
-    """Local JWT authentication and account lockout settings."""
+    """Local JWT authentication and account lockout settings.
+
+    Set ``max_login_attempts`` to ``0`` (or any non-positive value) to disable
+    account lockout after failed logins.
+    """
 
     secret_key: str = "CHANGE-ME-IN-PRODUCTION"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 7
     password_min_length: int = 12
-    max_login_attempts: int = 5
+    max_login_attempts: int = 0
     lockout_duration_minutes: int = 30
 
 

@@ -87,7 +87,8 @@ auth:
   access_token_expire_minutes: 60
   refresh_token_expire_days: 7
   password_min_length: 12
-  max_login_attempts: 5
+  # 0 = never lock accounts after failed logins
+  max_login_attempts: 0
   lockout_duration_minutes: 30
 
 # HTTP API settings.

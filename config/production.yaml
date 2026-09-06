@@ -9,7 +9,8 @@ auth:
   secret_key: "${DFAT_JWT_SECRET}"
   access_token_expire_minutes: 30
   refresh_token_expire_days: 7
-  max_login_attempts: 3
+  # 0 = never lock accounts after failed logins
+  max_login_attempts: 0
   lockout_duration_minutes: 60
 
 ai_engine:
